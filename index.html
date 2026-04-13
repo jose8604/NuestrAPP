@@ -110,17 +110,45 @@
   <div id="content"></div>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyAVlV-t9OvQuZEOoV4zAVOSBcHNwSaHbqI",
+  authDomain: "nuestrapp-3329a.firebaseapp.com",
+  projectId: "nuestrapp-3329a",
+  storageBucket: "nuestrapp-3329a.firebasestorage.app",
+  messagingSenderId: "11964303180",
+  appId: "1:11964303180:web:28412e809348d20d6af1e9",
+  measurementId: "G-J486WD0TVW"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+</script>
+
 <script>
 let user = null;
-let data = JSON.parse(localStorage.getItem('appData')) || {
+
+let data = {
   objetivos: [],
   planes: [],
   restaurantes: [],
   sitios: []
 };
 
-function saveData() {
-  localStorage.setItem('appData', JSON.stringify(data));
+async function loadData() {
+  db.collection("app").doc("data")
+    .onSnapshot((doc) => {
+      if (doc.exists) {
+        data = doc.data();
+      }
+    });
+}
+
+async function saveData() {
+  await db.collection("app").doc("data").set(data);
 }
 
 function login() {
@@ -143,7 +171,8 @@ function login() {
   }
 }
 
-function startApp() {
+async function startApp() {
+  await loadData();
   document.getElementById('auth').style.display = 'none';
   document.getElementById('app').style.display = 'block';
 }
@@ -196,7 +225,7 @@ function removeItem(section, index) {
   saveData();
   showSection(section);
 }
-</script>
 
+</script>
 </body>
 </html>
