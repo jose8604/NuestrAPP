@@ -134,7 +134,11 @@ const savedUser = JSON.parse(localStorage.getItem("user"));
 
 if (savedUser) {
   user = savedUser;
-  window.onload = () => startApp();
+if (savedUser) {
+  user = savedUser;
+  setTimeout(() => {
+    startApp();
+  }, 0);
 }
 
 let data = {
@@ -179,7 +183,12 @@ function login() {
   }
 }
 
+let appStarted = false;
+
 async function startApp() {
+  if (appStarted) return;
+  appStarted = true;
+
   await loadData();
   document.getElementById('auth').style.display = 'none';
   document.getElementById('app').style.display = 'block';
