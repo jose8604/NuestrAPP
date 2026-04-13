@@ -234,6 +234,9 @@ window.onload = function() {
   if (savedUser) {
     user = JSON.parse(savedUser);
     startApp();
+  } else {
+    document.getElementById('auth').style.display = 'block';
+    document.getElementById('app').style.display = 'none';
   }
 };
 
