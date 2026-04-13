@@ -130,16 +130,6 @@ const db = firebase.firestore();
 
 <script>
 let user = null;
-const savedUser = JSON.parse(localStorage.getItem("user"));
-
-if (savedUser) {
-  user = savedUser;
-if (savedUser) {
-  user = savedUser;
-  setTimeout(() => {
-    startApp();
-  }, 0);
-}
 
 let data = {
   objetivos: [],
@@ -183,12 +173,7 @@ function login() {
   }
 }
 
-let appStarted = false;
-
 async function startApp() {
-  if (appStarted) return;
-  appStarted = true;
-
   await loadData();
   document.getElementById('auth').style.display = 'none';
   document.getElementById('app').style.display = 'block';
@@ -242,6 +227,15 @@ function removeItem(section, index) {
   saveData();
   showSection(section);
 }
+
+window.onload = function() {
+  const savedUser = localStorage.getItem("user");
+
+  if (savedUser) {
+    user = JSON.parse(savedUser);
+    startApp();
+  }
+};
 
 </script>
 </body>
