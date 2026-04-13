@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nuestra App</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      margin: 0;
+      background: #fdf6e3;
+      text-align: center;
+    }
+
+    header {
+      background: #ffe066;
+      padding: 15px;
+      font-size: 20px;
+      font-weight: bold;
+    }
+
+    .container {
+      padding: 20px;
+    }
+
+    .menu {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+      margin-top: 20px;
+    }
+
+    .menu button {
+      background: #fff3bf;
+      border: none;
+      border-radius: 20px;
+      padding: 20px;
+      font-size: 16px;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 20px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+
+    input {
+      padding: 10px;
+      width: 80%;
+      margin: 10px 0;
+      border-radius: 10px;
+      border: 1px solid #ddd;
+    }
+
+    button {
+      padding: 10px 15px;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      background: #ffe066;
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    li {
+      margin: 10px 0;
+      background: #fff9db;
+      padding: 10px;
+      border-radius: 10px;
+    }
+
+    .back {
+      position: absolute;
+      left: 10px;
+      top: 10px;
+      background: #fff3bf;
+    }
+
+  </style>
+</head>
+<body>
+
+<header>
+  💛 Nuestra App 💛
+</header>
+
+<div id="auth" class="container">
+  <h3>Registro</h3>
+  <input id="name" placeholder="Tu nombre"><br>
+  <input type="file" id="photo"><br>
+  <button onclick="login()">Entrar</button>
+</div>
+
+<div id="app" style="display:none;" class="container">
+
+  <div id="mainMenu" class="menu">
+    <button onclick="showSection('objetivos')">🎯 Objetivos</button>
+    <button onclick="showSection('planes')">📅 Planes</button>
+    <button onclick="showSection('restaurantes')">🍽️ Restaurantes</button>
+    <button onclick="showSection('sitios')">📍 Sitios</button>
+  </div>
+
+  <div id="content"></div>
+</div>
+
+<script>
+let user = null;
+let data = JSON.parse(localStorage.getItem('appData')) || {
+  objetivos: [],
+  planes: [],
+  restaurantes: [],
+  sitios: []
+};
+
+function saveData() {
+  localStorage.setItem('appData', JSON.stringify(data));
+}
+
+function login() {
+  const name = document.getElementById('name').value;
+  const photoInput = document.getElementById('photo');
+
+  if (!name) return alert('Pon un nombre');
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    user = { name, photo: e.target.result };
+    startApp();
+  };
+
+  if (photoInput.files[0]) {
+    reader.readAsDataURL(photoInput.files[0]);
+  } else {
+    user = { name, photo: null };
+    startApp();
+  }
+}
+
+function startApp() {
+  document.getElementById('auth').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+}
+
+function showSection(section) {
+  document.getElementById('mainMenu').style.display = 'none';
+
+  const container = document.getElementById('content');
+  container.innerHTML = `
+    <button class="back" onclick="goBack()">⬅</button>
+    <div class="card">
+      <h2>${section}</h2>
+      <input id="newItem" placeholder="Añadir...">
+      <button onclick="addItem('${section}')">Añadir</button>
+      <ul>
+        ${data[section].map((item, i) => `
+          <li>
+            ${item.text}
+            <br>
+            <button onclick="toggle('${section}', ${i})">✔</button>
+            <button onclick="removeItem('${section}', ${i})">❌</button>
+          </li>
+        `).join('')}
+      </ul>
+    </div>
+  `;
+}
+
+function goBack() {
+  document.getElementById('content').innerHTML = '';
+  document.getElementById('mainMenu').style.display = 'grid';
+}
+
+function addItem(section) {
+  const text = document.getElementById('newItem').value;
+  if (!text) return;
+  data[section].push({ text, done: false });
+  saveData();
+  showSection(section);
+}
+
+function toggle(section, index) {
+  data[section][index].done = !data[section][index].done;
+  saveData();
+  showSection(section);
+}
+
+function removeItem(section, index) {
+  data[section].splice(index, 1);
+  saveData();
+  showSection(section);
+}
+</script>
+
+</body>
+</html>
