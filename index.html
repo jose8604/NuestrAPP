@@ -130,6 +130,12 @@ const db = firebase.firestore();
 
 <script>
 let user = null;
+const savedUser = JSON.parse(localStorage.getItem("user"));
+
+if (savedUser) {
+  user = savedUser;
+  window.onload = () => startApp();
+}
 
 let data = {
   objetivos: [],
@@ -160,6 +166,7 @@ function login() {
   const reader = new FileReader();
   reader.onload = function(e) {
     user = { name, photo: e.target.result };
+    localStorage.setItem("user", JSON.stringify(user));
     startApp();
   };
 
@@ -167,6 +174,7 @@ function login() {
     reader.readAsDataURL(photoInput.files[0]);
   } else {
     user = { name, photo: null };
+    localStorage.setItem("user", JSON.stringify(user));
     startApp();
   }
 }
