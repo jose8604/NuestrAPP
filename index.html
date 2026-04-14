@@ -132,7 +132,7 @@ const db = firebase.firestore();
 let user = null;
 
 let data = {
-  objetivos: [],
+  users: {},
   planes: [],
   restaurantes: [],
   sitios: []
@@ -151,27 +151,47 @@ async function saveData() {
   await db.collection("app").doc("data").set(data);
 }
 
-function login() {
+async function login() {
   const name = document.getElementById('name').value;
   const photoInput = document.getElementById('photo');
 
   if (!name) return alert('Pon un nombre');
 
   const reader = new FileReader();
-  reader.onload = function(e) {
-    user = { name, photo: e.target.result };
-    localStorage.setItem("user", JSON.stringify(user));
-    startApp();
-  };
+reader.onload = async function(e) {
+  user = { name, photo: e.target.result };
+  localStorage.setItem("user", JSON.stringify(user));
+
+  await db.collection("app").doc("data").set({
+    users: {
+      [user.name]: {
+        name: user.name,
+        photo: user.photo,
+        objetivos: []
+      }
+    }
+  }, { merge: true });
+
+  startApp();
+};
 
   if (photoInput.files[0]) {
     reader.readAsDataURL(photoInput.files[0]);
   } else {
     user = { name, photo: null };
-    localStorage.setItem("user", JSON.stringify(user));
-    startApp();
+localStorage.setItem("user", JSON.stringify(user));
+
+await db.collection("app").doc("data").set({
+  users: {
+    [user.name]: {
+      name: user.name,
+      photo: user.photo,
+      objetivos: []
+    }
   }
-}
+}, { merge: true });
+
+startApp();
 
 async function startApp() {
   await loadData();
@@ -183,6 +203,44 @@ function showSection(section) {
   document.getElementById('mainMenu').style.display = 'none';
 
   const container = document.getElementById('content');
+if (section === "objetivos") {
+  container.innerHTML = `
+    <button class="back" onclick="goBack()">⬅</button>
+    <div class="card">
+      <h2>🎯 Objetivos</h2>
+
+      ${Object.values(data.users).map(u => {
+        const total = u.objetivos.length;
+        const done = u.objetivos.filter(o => o.done).length;
+        const percent = total ? Math.round((done / total) * 100) : 0;
+
+        return `
+          <div style="margin-bottom:25px;">
+            
+            <img src="${u.photo}" width="60" style="border-radius:50%;">
+
+            <div style="margin:10px;">
+              🔵 ${percent}% completado
+            </div>
+
+            <ul>
+              ${u.objetivos.map((obj, i) => `
+                <li>
+                  ${obj.text}
+                  <button onclick="toggleObjetivo('${u.name}', ${i})">✔</button>
+                </li>
+              `).join('')}
+            </ul>
+          </div>
+        `;
+      }).join('')}
+
+      <input id="newItem" placeholder="Nuevo objetivo">
+      <button onclick="addItem('objetivos')">Añadir</button>
+    </div>
+  `;
+  return;
+}
   container.innerHTML = `
     <button class="back" onclick="goBack()">⬅</button>
     <div class="card">
@@ -192,11 +250,12 @@ function showSection(section) {
       <ul>
         ${data[section].map((item, i) => `
           <li>
+            <img src="${data.users[item.user]?.photo}" width="30" style="border-radius:50%; vertical-align:middle;">
             ${item.text}
             <br>
             <button onclick="toggle('${section}', ${i})">✔</button>
             <button onclick="removeItem('${section}', ${i})">❌</button>
-          </li>
+           </li>
         `).join('')}
       </ul>
     </div>
@@ -211,7 +270,21 @@ function goBack() {
 function addItem(section) {
   const text = document.getElementById('newItem').value;
   if (!text) return;
-  data[section].push({ text, done: false });
+
+  if (section === "objetivos") {
+    if (!data.users[user.name]) return;
+
+    data.users[user.name].objetivos.push({
+      text,
+      done: false
+    });
+  } else {
+    data[section].push({
+      text,
+      user: user.name
+    });
+  }
+
   saveData();
   showSection(section);
 }
@@ -226,6 +299,13 @@ function removeItem(section, index) {
   data[section].splice(index, 1);
   saveData();
   showSection(section);
+}
+
+function toggleObjetivo(username, index) {
+  const obj = data.users[username].objetivos[index];
+  obj.done = !obj.done;
+  saveData();
+  showSection('objetivos');
 }
 
 window.onload = function() {
