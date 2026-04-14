@@ -143,6 +143,11 @@ async function loadData() {
     .onSnapshot((doc) => {
       if (doc.exists) {
         data = doc.data();
+      
+        const currentSection = document.querySelector('.card h2');
+        if (currentSection) {
+          const section = currentSection.textContent.toLowerCase();
+          showSection(section);
       }
     });
 }
@@ -192,6 +197,7 @@ await db.collection("app").doc("data").set({
 }, { merge: true });
 
 startApp();
+}
 
 async function startApp() {
   await loadData();
@@ -308,7 +314,7 @@ function toggleObjetivo(username, index) {
   showSection('objetivos');
 }
 
-window.onload = function() {
+document.addEventListener("DOMContentLoaded", function() {
   const savedUser = localStorage.getItem("user");
 
   if (savedUser) {
