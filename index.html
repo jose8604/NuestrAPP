@@ -4,7 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Nuestra App</title>
+
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
+
   <style>
     body {
       font-family: 'Poppins', sans-serif;
@@ -20,9 +22,7 @@
       font-weight: bold;
     }
 
-    .container {
-      padding: 20px;
-    }
+    .container { padding: 20px; }
 
     .menu {
       display: grid;
@@ -64,10 +64,7 @@
       background: #ffe066;
     }
 
-    ul {
-      list-style: none;
-      padding: 0;
-    }
+    ul { list-style: none; padding: 0; }
 
     li {
       margin: 10px 0;
@@ -82,14 +79,12 @@
       top: 10px;
       background: #fff3bf;
     }
-
   </style>
 </head>
+
 <body>
 
-<header>
-  💛 Nuestra App 💛
-</header>
+<header>💛 Nuestra App 💛</header>
 
 <div id="auth" class="container">
   <h3>Registro</h3>
@@ -99,7 +94,6 @@
 </div>
 
 <div id="app" style="display:none;" class="container">
-
   <div id="mainMenu" class="menu">
     <button onclick="showSection('objetivos')">🎯 Objetivos</button>
     <button onclick="showSection('planes')">📅 Planes</button>
@@ -110,6 +104,7 @@
   <div id="content"></div>
 </div>
 
+<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
@@ -138,24 +133,22 @@ let data = {
   sitios: []
 };
 
-async function loadData() {
+/* ===================== FIREBASE LOAD ===================== */
+function loadData() {
   db.collection("app").doc("data")
     .onSnapshot((doc) => {
       if (doc.exists) {
-        data = doc.data();
-      
-        const currentSection = document.querySelector('.card h2');
-        if (currentSection) {
-          const section = currentSection.textContent.toLowerCase();
-          showSection(section);
+        data = doc.data() || data;
       }
     });
 }
 
+/* ===================== SAVE ===================== */
 async function saveData() {
-  await db.collection("app").doc("data").set(data);
+  await db.collection("app").doc("data").set(data, { merge: true });
 }
 
+/* ===================== LOGIN ===================== */
 async function login() {
   const name = document.getElementById('name').value;
   const photoInput = document.getElementById('photo');
@@ -163,116 +156,121 @@ async function login() {
   if (!name) return alert('Pon un nombre');
 
   const reader = new FileReader();
-reader.onload = async function(e) {
-  user = { name, photo: e.target.result };
-  localStorage.setItem("user", JSON.stringify(user));
 
-  await db.collection("app").doc("data").set({
-    users: {
-      [user.name]: {
-        name: user.name,
-        photo: user.photo,
-        objetivos: []
+  reader.onload = async function(e) {
+    user = { name, photo: e.target.result };
+    localStorage.setItem("user", JSON.stringify(user));
+
+    await db.collection("app").doc("data").set({
+      users: {
+        [user.name]: {
+          name: user.name,
+          photo: user.photo,
+          objetivos: []
+        }
       }
-    }
-  }, { merge: true });
+    }, { merge: true });
 
-  startApp();
-};
+    startApp();
+  };
 
   if (photoInput.files[0]) {
     reader.readAsDataURL(photoInput.files[0]);
   } else {
     user = { name, photo: null };
-localStorage.setItem("user", JSON.stringify(user));
+    localStorage.setItem("user", JSON.stringify(user));
 
-await db.collection("app").doc("data").set({
-  users: {
-    [user.name]: {
-      name: user.name,
-      photo: user.photo,
-      objetivos: []
-    }
+    await db.collection("app").doc("data").set({
+      users: {
+        [user.name]: {
+          name: user.name,
+          photo: null,
+          objetivos: []
+        }
+      }
+    }, { merge: true });
+
+    startApp();
   }
-}, { merge: true });
-
-startApp();
 }
 
-async function startApp() {
-  await loadData();
+/* ===================== START APP ===================== */
+function startApp() {
+  loadData();
   document.getElementById('auth').style.display = 'none';
   document.getElementById('app').style.display = 'block';
 }
 
+/* ===================== SECCIONES ===================== */
 function showSection(section) {
   document.getElementById('mainMenu').style.display = 'none';
 
   const container = document.getElementById('content');
-if (section === "objetivos") {
-  container.innerHTML = `
-    <button class="back" onclick="goBack()">⬅</button>
-    <div class="card">
-      <h2>🎯 Objetivos</h2>
 
-      ${Object.values(data.users).map(u => {
-        const total = u.objetivos.length;
-        const done = u.objetivos.filter(o => o.done).length;
-        const percent = total ? Math.round((done / total) * 100) : 0;
+  if (section === "objetivos") {
+    container.innerHTML = `
+      <button class="back" onclick="goBack()">⬅</button>
+      <div class="card">
+        <h2>🎯 Objetivos</h2>
 
-        return `
-          <div style="margin-bottom:25px;">
-            
-            <img src="${u.photo}" width="60" style="border-radius:50%;">
+        ${Object.values(data.users || {}).map(u => {
+          const total = u.objetivos?.length || 0;
+          const done = u.objetivos?.filter(o => o.done).length || 0;
+          const percent = total ? Math.round((done / total) * 100) : 0;
 
-            <div style="margin:10px;">
-              🔵 ${percent}% completado
+          return `
+            <div style="margin-bottom:25px;">
+              <img src="${u.photo || ''}" width="60" style="border-radius:50%;">
+              <div style="margin:10px;">🔵 ${percent}% completado</div>
+
+              <ul>
+                ${(u.objetivos || []).map((obj, i) => `
+                  <li>
+                    ${obj.text}
+                    <button onclick="toggleObjetivo('${u.name}', ${i})">✔</button>
+                  </li>
+                `).join('')}
+              </ul>
             </div>
+          `;
+        }).join('')}
 
-            <ul>
-              ${u.objetivos.map((obj, i) => `
-                <li>
-                  ${obj.text}
-                  <button onclick="toggleObjetivo('${u.name}', ${i})">✔</button>
-                </li>
-              `).join('')}
-            </ul>
-          </div>
-        `;
-      }).join('')}
+        <input id="newItem" placeholder="Nuevo objetivo">
+        <button onclick="addItem('objetivos')">Añadir</button>
+      </div>
+    `;
+    return;
+  }
 
-      <input id="newItem" placeholder="Nuevo objetivo">
-      <button onclick="addItem('objetivos')">Añadir</button>
-    </div>
-  `;
-  return;
-}
   container.innerHTML = `
     <button class="back" onclick="goBack()">⬅</button>
     <div class="card">
       <h2>${section}</h2>
+
       <input id="newItem" placeholder="Añadir...">
       <button onclick="addItem('${section}')">Añadir</button>
+
       <ul>
-        ${data[section].map((item, i) => `
+        ${(data[section] || []).map((item, i) => `
           <li>
-            <img src="${data.users[item.user]?.photo}" width="30" style="border-radius:50%; vertical-align:middle;">
+            <img src="${data.users?.[item.user]?.photo || ''}" width="30" style="border-radius:50%;">
             ${item.text}
             <br>
-            <button onclick="toggle('${section}', ${i})">✔</button>
             <button onclick="removeItem('${section}', ${i})">❌</button>
-           </li>
+          </li>
         `).join('')}
       </ul>
     </div>
   `;
 }
 
+/* ===================== BACK ===================== */
 function goBack() {
   document.getElementById('content').innerHTML = '';
   document.getElementById('mainMenu').style.display = 'grid';
 }
 
+/* ===================== ADD ===================== */
 function addItem(section) {
   const text = document.getElementById('newItem').value;
   if (!text) return;
@@ -295,18 +293,14 @@ function addItem(section) {
   showSection(section);
 }
 
-function toggle(section, index) {
-  data[section][index].done = !data[section][index].done;
-  saveData();
-  showSection(section);
-}
-
+/* ===================== REMOVE ===================== */
 function removeItem(section, index) {
   data[section].splice(index, 1);
   saveData();
   showSection(section);
 }
 
+/* ===================== TOGGLE OBJETIVOS ===================== */
 function toggleObjetivo(username, index) {
   const obj = data.users[username].objetivos[index];
   obj.done = !obj.done;
@@ -314,6 +308,7 @@ function toggleObjetivo(username, index) {
   showSection('objetivos');
 }
 
+/* ===================== AUTO LOGIN ===================== */
 document.addEventListener("DOMContentLoaded", function() {
   const savedUser = localStorage.getItem("user");
 
@@ -324,8 +319,8 @@ document.addEventListener("DOMContentLoaded", function() {
     document.getElementById('auth').style.display = 'block';
     document.getElementById('app').style.display = 'none';
   }
-};
-
+});
 </script>
+
 </body>
 </html>
