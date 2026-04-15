@@ -21,21 +21,17 @@ header {
   font-weight: bold;
 }
 
-.container {
-  padding: 20px;
-}
-
 .menu {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 15px;
+  padding: 20px;
 }
 
 .menu button {
   background: #fff3bf;
   border-radius: 20px;
   padding: 20px;
-  font-size: 16px;
 }
 
 .card {
@@ -45,16 +41,15 @@ header {
 }
 
 input {
-  padding: 10px;
-  width: 80%;
   margin: 10px;
+  padding: 10px;
   border-radius: 10px;
 }
 
 button {
   background: #ffe066;
-  border-radius: 10px;
   padding: 10px;
+  border-radius: 10px;
 }
 
 li {
@@ -65,16 +60,15 @@ li {
   text-align: left;
 }
 
-/* 🔵 CIRCULO PROGRESO */
+/* 🟢 progreso */
 .progress {
   width: 70px;
   height: 70px;
   border-radius: 50%;
-  background: conic-gradient(#ffd43b var(--progress), #eee 0%);
+  background: conic-gradient(#51cf66 var(--progress), #eee 0%);
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: auto;
 }
 
 .progress img {
@@ -83,14 +77,22 @@ li {
   border-radius: 50%;
 }
 
+.user-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ✔️ completado */
+.done {
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+
 .back {
   position: absolute;
   left: 10px;
   top: 10px;
-}
-
-.user-row {
-  margin-bottom: 25px;
 }
 </style>
 </head>
@@ -99,14 +101,13 @@ li {
 
 <header>💛 Nuestra App 💛</header>
 
-<div id="auth" class="container">
-  <h3>Registro</h3>
+<div id="auth">
   <input id="name" placeholder="Tu nombre"><br>
   <input type="file" id="photo"><br>
   <button onclick="login()">Entrar</button>
 </div>
 
-<div id="app" style="display:none;" class="container">
+<div id="app" style="display:none">
 
   <div id="mainMenu" class="menu">
     <button onclick="showSection('objetivos')">🎯 Objetivos</button>
@@ -118,7 +119,6 @@ li {
   <div id="content"></div>
 </div>
 
-<!-- 🔥 FIREBASE (NO TOCADO) -->
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
@@ -147,135 +147,149 @@ let data = {
   sitios: []
 };
 
-function loadData() {
+function loadData(){
   db.collection("app").doc("data")
-    .onSnapshot((doc) => {
-      if (doc.exists) data = doc.data();
-    });
+  .onSnapshot(doc=>{
+    if(doc.exists) data = doc.data();
+  });
 }
 
-async function saveData() {
+async function saveData(){
   await db.collection("app").doc("data").set(data);
 }
 
-async function login() {
-  const name = document.getElementById('name').value;
-  const file = document.getElementById('photo').files[0];
+async function login(){
+  const name = nameInput.value;
+  const file = photo.files[0];
 
-  if (!name) return alert("Pon nombre");
+  if(!name) return alert("Pon nombre");
 
-  let photo = null;
+  let photoData = null;
 
-  if (file) {
-    photo = await new Promise(resolve => {
+  if(file){
+    photoData = await new Promise(r=>{
       const reader = new FileReader();
-      reader.onload = e => resolve(e.target.result);
+      reader.onload = e => r(e.target.result);
       reader.readAsDataURL(file);
     });
   }
 
-  user = { name, photo };
+  user = {name, photo:photoData};
   localStorage.setItem("user", JSON.stringify(user));
 
   await db.collection("app").doc("data").set({
-    users: {
-      [name]: {
-        name,
-        photo,
-        objetivos: []
-      }
+    users:{
+      [name]:{name,photo:photoData,objetivos:[]}
     }
-  }, { merge: true });
+  },{merge:true});
 
   startApp();
 }
 
-function startApp() {
+function startApp(){
   loadData();
-  document.getElementById('auth').style.display = 'none';
-  document.getElementById('app').style.display = 'block';
+  auth.style.display="none";
+  app.style.display="block";
 }
 
-function showSection(section) {
-  document.getElementById('mainMenu').style.display = 'none';
-  const c = document.getElementById('content');
+function showSection(section){
+  mainMenu.style.display="none";
 
-  if (section === "objetivos") {
-    c.innerHTML = `
-      <button class="back" onclick="goBack()">⬅</button>
-      <div class="card">
-
-        ${Object.values(data.users).map(u => {
-          const total = u.objetivos.length;
-          const done = u.objetivos.filter(o=>o.done).length;
-          const percent = total ? (done/total)*100 : 0;
-
-          return `
-          <div class="user-row">
-
-            <div class="progress" style="--progress:${percent}%">
-              <img src="${u.photo || ''}">
-            </div>
-
-            <ul>
-              ${u.objetivos.map((o,i)=>`
-                <li>
-                  ${o.text}
-                  <button onclick="toggleObjetivo('${u.name}',${i})">✔</button>
-                </li>
-              `).join('')}
-            </ul>
-
-          </div>
-          `;
-        }).join('')}
-
-        <input id="newItem" placeholder="Nuevo objetivo">
-        <button onclick="addItem('objetivos')">Añadir</button>
-
-      </div>
-    `;
-    return;
-  }
-
-  c.innerHTML = `
+  if(section==="objetivos"){
+    content.innerHTML = `
     <button class="back" onclick="goBack()">⬅</button>
     <div class="card">
 
-      <input id="newItem">
-      <button onclick="addItem('${section}')">Añadir</button>
+    ${Object.values(data.users).map(u=>{
+      const total=u.objetivos.length;
+      const done=u.objetivos.filter(o=>o.done).length;
+      const percent=total?(done/total)*100:0;
 
-      <ul>
-        ${data[section].map((item,i)=>`
-          <li>
-            <img src="${data.users[item.user]?.photo}" width="30" style="border-radius:50%">
-            ${item.text}
-            <button onclick="removeItem('${section}',${i})">❌</button>
+      return `
+      <div>
+
+        <div class="user-header">
+          <div class="progress" style="--progress:${percent}%">
+            <img src="${u.photo||''}">
+          </div>
+          <b>${u.name}</b>
+        </div>
+
+        <ul>
+        ${u.objetivos.map((o,i)=>`
+          <li class="${o.done?'done':''}">
+            ${o.text}
+            <button onclick="toggleObjetivo('${u.name}',${i})">✔</button>
           </li>
         `).join('')}
-      </ul>
+        </ul>
 
-    </div>
-  `;
-}
+      </div>
+      `;
+    }).join('')}
 
-function goBack(){
-  content.innerHTML="";
-  mainMenu.style.display="grid";
+    <input id="newItem">
+    <button onclick="addItem('objetivos')">Añadir</button>
+
+    </div>`;
+    return;
+  }
+
+  content.innerHTML = `
+  <button class="back" onclick="goBack()">⬅</button>
+  <div class="card">
+
+  <input id="newItem">
+  <input type="file" id="imgInput">
+  <button onclick="addItem('${section}')">Añadir</button>
+
+  <ul>
+  ${data[section].map((item,i)=>`
+    <li>
+      <img src="${data.users[item.user]?.photo}" width="30" style="border-radius:50%">
+      ${item.text}
+      ${item.img?`<br><img src="${item.img}" width="100">`:''}
+      <button onclick="removeItem('${section}',${i})">❌</button>
+    </li>
+  `).join('')}
+  </ul>
+
+  </div>`;
 }
 
 function addItem(section){
-  const text = document.getElementById('newItem').value;
+  const text = newItem.value;
+  const file = document.getElementById("imgInput")?.files[0];
+
   if(!text) return;
 
   if(section==="objetivos"){
     data.users[user.name].objetivos.push({text,done:false});
-  } else {
-    data[section].push({text,user:user.name});
+    saveData();
+    showSection(section);
+    return;
   }
 
+  if(file){
+    const reader = new FileReader();
+    reader.onload = e=>{
+      data[section].push({text,user:user.name,img:e.target.result});
+      saveData();
+      showSection(section);
+    };
+    reader.readAsDataURL(file);
+  }else{
+    data[section].push({text,user:user.name});
+    saveData();
+    showSection(section);
+  }
+}
+
+function toggleObjetivo(name,i){
+  let obj=data.users[name].objetivos[i];
+  obj.done=!obj.done;
   saveData();
-  showSection(section);
+  showSection("objetivos");
 }
 
 function removeItem(section,i){
@@ -284,17 +298,15 @@ function removeItem(section,i){
   showSection(section);
 }
 
-function toggleObjetivo(userName,i){
-  let obj = data.users[userName].objetivos[i];
-  obj.done = !obj.done;
-  saveData();
-  showSection("objetivos");
+function goBack(){
+  content.innerHTML="";
+  mainMenu.style.display="grid";
 }
 
 document.addEventListener("DOMContentLoaded",()=>{
-  const saved = localStorage.getItem("user");
+  const saved=localStorage.getItem("user");
   if(saved){
-    user = JSON.parse(saved);
+    user=JSON.parse(saved);
     startApp();
   }
 });
