@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Nuestra App</title>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
+
   <style>
     body {
       font-family: 'Poppins', sans-serif;
@@ -20,9 +21,7 @@
       font-weight: bold;
     }
 
-    .container {
-      padding: 20px;
-    }
+    .container { padding: 20px; }
 
     .menu {
       display: grid;
@@ -38,14 +37,12 @@
       padding: 20px;
       font-size: 16px;
       cursor: pointer;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
     }
 
     .card {
       background: white;
       padding: 20px;
       border-radius: 20px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
     }
 
     input {
@@ -64,11 +61,6 @@
       background: #ffe066;
     }
 
-    ul {
-      list-style: none;
-      padding: 0;
-    }
-
     li {
       margin: 10px 0;
       background: #fff9db;
@@ -80,16 +72,13 @@
       position: absolute;
       left: 10px;
       top: 10px;
-      background: #fff3bf;
     }
-
   </style>
 </head>
+
 <body>
 
-<header>
-  💛 Nuestra App 💛
-</header>
+<header>💛 Nuestra App 💛</header>
 
 <div id="auth" class="container">
   <h3>Registro</h3>
@@ -99,7 +88,6 @@
 </div>
 
 <div id="app" style="display:none;" class="container">
-
   <div id="mainMenu" class="menu">
     <button onclick="showSection('objetivos')">🎯 Objetivos</button>
     <button onclick="showSection('planes')">📅 Planes</button>
@@ -110,12 +98,13 @@
   <div id="content"></div>
 </div>
 
+<!-- 🔥 FIREBASE (NO TOCADO) -->
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
 <script>
 const firebaseConfig = {
-  apiKey: "AIzaSyAVlV-t9OvQuZEOoV4zAVOSBcHNwSaHbqI",
+  apiKey: "AIzaSy...",
   authDomain: "nuestrapp-3329a.firebaseapp.com",
   projectId: "nuestrapp-3329a",
   storageBucket: "nuestrapp-3329a.firebasestorage.app",
@@ -132,13 +121,13 @@ const db = firebase.firestore();
 let user = null;
 
 let data = {
-  objetivos: [],
+  users: {},
   planes: [],
   restaurantes: [],
   sitios: []
 };
 
-async function loadData() {
+function loadData() {
   db.collection("app").doc("data")
     .onSnapshot((doc) => {
       if (doc.exists) {
@@ -151,51 +140,85 @@ async function saveData() {
   await db.collection("app").doc("data").set(data);
 }
 
-function login() {
+async function login() {
   const name = document.getElementById('name').value;
   const photoInput = document.getElementById('photo');
 
   if (!name) return alert('Pon un nombre');
 
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    user = { name, photo: e.target.result };
-    localStorage.setItem("user", JSON.stringify(user));
-    startApp();
-  };
+  let photo = null;
 
   if (photoInput.files[0]) {
-    reader.readAsDataURL(photoInput.files[0]);
-  } else {
-    user = { name, photo: null };
-    localStorage.setItem("user", JSON.stringify(user));
-    startApp();
+    photo = await new Promise(resolve => {
+      const reader = new FileReader();
+      reader.onload = e => resolve(e.target.result);
+      reader.readAsDataURL(photoInput.files[0]);
+    });
   }
+
+  user = { name, photo };
+  localStorage.setItem("user", JSON.stringify(user));
+
+  await db.collection("app").doc("data").set({
+    users: {
+      [user.name]: {
+        name: user.name,
+        photo: user.photo,
+        objetivos: []
+      }
+    }
+  }, { merge: true });
+
+  startApp();
 }
 
-async function startApp() {
-  await loadData();
+function startApp() {
+  loadData();
   document.getElementById('auth').style.display = 'none';
   document.getElementById('app').style.display = 'block';
 }
 
 function showSection(section) {
   document.getElementById('mainMenu').style.display = 'none';
-
   const container = document.getElementById('content');
+
+  if (section === "objetivos") {
+    container.innerHTML = `
+      <button class="back" onclick="goBack()">⬅</button>
+      <div class="card">
+        <h2>🎯 Objetivos</h2>
+
+        ${Object.values(data.users).map(u => `
+          <div>
+            <img src="${u.photo || ''}" width="60" style="border-radius:50%">
+            <ul>
+              ${(u.objetivos || []).map((obj,i)=>`
+                <li>${obj.text}
+                <button onclick="toggleObjetivo('${u.name}',${i})">✔</button>
+                </li>
+              `).join('')}
+            </ul>
+          </div>
+        `).join('')}
+
+        <input id="newItem" placeholder="Nuevo objetivo">
+        <button onclick="addItem('objetivos')">Añadir</button>
+      </div>
+    `;
+    return;
+  }
+
   container.innerHTML = `
     <button class="back" onclick="goBack()">⬅</button>
     <div class="card">
       <h2>${section}</h2>
-      <input id="newItem" placeholder="Añadir...">
+      <input id="newItem">
       <button onclick="addItem('${section}')">Añadir</button>
       <ul>
-        ${data[section].map((item, i) => `
+        ${data[section].map((item,i)=>`
           <li>
             ${item.text}
-            <br>
-            <button onclick="toggle('${section}', ${i})">✔</button>
-            <button onclick="removeItem('${section}', ${i})">❌</button>
+            <button onclick="removeItem('${section}',${i})">❌</button>
           </li>
         `).join('')}
       </ul>
@@ -211,35 +234,39 @@ function goBack() {
 function addItem(section) {
   const text = document.getElementById('newItem').value;
   if (!text) return;
-  data[section].push({ text, done: false });
+
+  if (section === "objetivos") {
+    data.users[user.name].objetivos.push({ text, done:false });
+  } else {
+    data[section].push({ text });
+  }
+
   saveData();
   showSection(section);
 }
 
-function toggle(section, index) {
-  data[section][index].done = !data[section][index].done;
+function removeItem(section,index){
+  data[section].splice(index,1);
   saveData();
   showSection(section);
 }
 
-function removeItem(section, index) {
-  data[section].splice(index, 1);
+function toggleObjetivo(userName,index){
+  let obj = data.users[userName].objetivos[index];
+  obj.done = !obj.done;
   saveData();
-  showSection(section);
+  showSection("objetivos");
 }
 
-window.onload = function() {
+document.addEventListener("DOMContentLoaded", () => {
   const savedUser = localStorage.getItem("user");
 
   if (savedUser) {
     user = JSON.parse(savedUser);
     startApp();
-  } else {
-    document.getElementById('auth').style.display = 'block';
-    document.getElementById('app').style.display = 'none';
   }
-};
-
+});
 </script>
+
 </body>
 </html>
