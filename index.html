@@ -18,20 +18,54 @@ body {
 header {
   background: #ffe066;
   padding: 15px;
+  font-size: 20px;
   font-weight: bold;
+  position: relative;
+}
+
+/* MENU DESPLEGABLE */
+.menu-btn {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  font-size: 22px;
+  cursor: pointer;
+}
+
+.dropdown {
+  display: none;
+  position: absolute;
+  top: 50px;
+  left: 10px;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+  padding: 10px;
+}
+
+.dropdown button {
+  display: block;
+  width: 100%;
+  margin: 5px 0;
+}
+
+.container {
+  padding: 20px;
 }
 
 .menu {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 15px;
-  padding: 20px;
+  margin-top: 20px;
 }
 
 .menu button {
   background: #fff3bf;
+  border: none;
   border-radius: 20px;
   padding: 20px;
+  font-size: 16px;
 }
 
 .card {
@@ -41,52 +75,16 @@ header {
 }
 
 input {
-  margin: 10px;
   padding: 10px;
+  width: 80%;
+  margin: 10px 0;
   border-radius: 10px;
 }
 
 button {
+  padding: 10px;
+  border-radius: 10px;
   background: #ffe066;
-  padding: 10px;
-  border-radius: 10px;
-}
-
-li {
-  background: #fff9db;
-  margin: 10px;
-  padding: 10px;
-  border-radius: 10px;
-  text-align: left;
-}
-
-/* 🟢 progreso */
-.progress {
-  width: 70px;
-  height: 70px;
-  border-radius: 50%;
-  background: conic-gradient(#51cf66 var(--progress), #eee 0%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.progress img {
-  width: 55px;
-  height: 55px;
-  border-radius: 50%;
-}
-
-.user-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-/* ✔️ completado */
-.done {
-  text-decoration: line-through;
-  opacity: 0.6;
 }
 
 .back {
@@ -99,15 +97,23 @@ li {
 
 <body>
 
-<header>💛 Nuestra App 💛</header>
+<header>
+  <div class="menu-btn" onclick="toggleMenu()">☰</div>
+  💛 Nuestra App 💛
 
-<div id="auth">
+  <div id="dropdown" class="dropdown">
+    <button onclick="logout()">Cerrar sesión 🚪</button>
+  </div>
+</header>
+
+<div id="auth" class="container">
+  <h3>Registro</h3>
   <input id="name" placeholder="Tu nombre"><br>
   <input type="file" id="photo"><br>
   <button onclick="login()">Entrar</button>
 </div>
 
-<div id="app" style="display:none">
+<div id="app" style="display:none;" class="container">
 
   <div id="mainMenu" class="menu">
     <button onclick="showSection('objetivos')">🎯 Objetivos</button>
@@ -124,7 +130,7 @@ li {
 
 <script>
 const firebaseConfig = {
-  apiKey: "AIzaSy...",
+  apiKey: "AIzaSyAVlV-t9OvQuZEOoV4zAVOSBcHNwSaHbqI",
   authDomain: "nuestrapp-3329a.firebaseapp.com",
   projectId: "nuestrapp-3329a",
   storageBucket: "nuestrapp-3329a.firebasestorage.app",
@@ -147,169 +153,144 @@ let data = {
   sitios: []
 };
 
-function loadData(){
+/* MENU */
+function toggleMenu() {
+  const menu = document.getElementById("dropdown");
+  menu.style.display = menu.style.display === "block" ? "none" : "block";
+}
+
+function logout() {
+  localStorage.removeItem("user");
+  location.reload();
+}
+
+/* FIREBASE */
+function loadData() {
   db.collection("app").doc("data")
-  .onSnapshot(doc=>{
-    if(doc.exists) data = doc.data();
-  });
-}
-
-async function saveData(){
-  await db.collection("app").doc("data").set(data);
-}
-
-async function login(){
-  const name = nameInput.value;
-  const file = photo.files[0];
-
-  if(!name) return alert("Pon nombre");
-
-  let photoData = null;
-
-  if(file){
-    photoData = await new Promise(r=>{
-      const reader = new FileReader();
-      reader.onload = e => r(e.target.result);
-      reader.readAsDataURL(file);
+    .onSnapshot((doc) => {
+      if (doc.exists) {
+        data = doc.data();
+        console.log("DATOS RECIBIDOS", data);
+      }
     });
+}
+
+function saveData() {
+  console.log("GUARDANDO...");
+  db.collection("app").doc("data").set(data);
+}
+
+/* LOGIN */
+function login() {
+  console.log("LOGIN CLICK");
+
+  const name = document.getElementById('name').value;
+  const photoInput = document.getElementById('photo');
+
+  if (!name) return alert("Pon un nombre");
+
+  const reader = new FileReader();
+
+  reader.onload = async function(e) {
+    console.log("GUARDANDO EN FIREBASE");
+
+    user = { name, photo: e.target.result };
+    localStorage.setItem("user", JSON.stringify(user));
+
+    await db.collection("app").doc("data").set({
+      users: {
+        [user.name]: {
+          name: user.name,
+          photo: user.photo,
+          objetivos: []
+        }
+      }
+    }, { merge: true });
+
+    startApp();
+  };
+
+  if (photoInput.files[0]) {
+    reader.readAsDataURL(photoInput.files[0]);
+  } else {
+    console.log("SIN FOTO, GUARDANDO");
+
+    user = { name, photo: null };
+    localStorage.setItem("user", JSON.stringify(user));
+
+    db.collection("app").doc("data").set({
+      users: {
+        [user.name]: {
+          name: user.name,
+          photo: null,
+          objetivos: []
+        }
+      }
+    }, { merge: true });
+
+    startApp();
   }
-
-  user = {name, photo:photoData};
-  localStorage.setItem("user", JSON.stringify(user));
-
-  await db.collection("app").doc("data").set({
-    users:{
-      [name]:{name,photo:photoData,objetivos:[]}
-    }
-  },{merge:true});
-
-  startApp();
 }
 
-function startApp(){
+/* APP */
+function startApp() {
   loadData();
-  auth.style.display="none";
-  app.style.display="block";
+  document.getElementById('auth').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
 }
 
-function showSection(section){
-  mainMenu.style.display="none";
+/* SECCIONES */
+function showSection(section) {
+  document.getElementById('mainMenu').style.display = 'none';
 
-  if(section==="objetivos"){
-    content.innerHTML = `
+  const container = document.getElementById('content');
+
+  container.innerHTML = `
     <button class="back" onclick="goBack()">⬅</button>
     <div class="card">
-
-    ${Object.values(data.users).map(u=>{
-      const total=u.objetivos.length;
-      const done=u.objetivos.filter(o=>o.done).length;
-      const percent=total?(done/total)*100:0;
-
-      return `
-      <div>
-
-        <div class="user-header">
-          <div class="progress" style="--progress:${percent}%">
-            <img src="${u.photo||''}">
-          </div>
-          <b>${u.name}</b>
-        </div>
-
-        <ul>
-        ${u.objetivos.map((o,i)=>`
-          <li class="${o.done?'done':''}">
-            ${o.text}
-            <button onclick="toggleObjetivo('${u.name}',${i})">✔</button>
+      <h2>${section}</h2>
+      <input id="newItem" placeholder="Añadir...">
+      <button onclick="addItem('${section}')">Añadir</button>
+      <ul>
+        ${(data[section] || []).map((item, i) => `
+          <li>
+            <img src="${data.users[item.user]?.photo}" width="30" style="border-radius:50%;">
+            ${item.text}
           </li>
         `).join('')}
-        </ul>
-
-      </div>
-      `;
-    }).join('')}
-
-    <input id="newItem">
-    <button onclick="addItem('objetivos')">Añadir</button>
-
-    </div>`;
-    return;
-  }
-
-  content.innerHTML = `
-  <button class="back" onclick="goBack()">⬅</button>
-  <div class="card">
-
-  <input id="newItem">
-  <input type="file" id="imgInput">
-  <button onclick="addItem('${section}')">Añadir</button>
-
-  <ul>
-  ${data[section].map((item,i)=>`
-    <li>
-      <img src="${data.users[item.user]?.photo}" width="30" style="border-radius:50%">
-      ${item.text}
-      ${item.img?`<br><img src="${item.img}" width="100">`:''}
-      <button onclick="removeItem('${section}',${i})">❌</button>
-    </li>
-  `).join('')}
-  </ul>
-
-  </div>`;
+      </ul>
+    </div>
+  `;
 }
 
-function addItem(section){
-  const text = newItem.value;
-  const file = document.getElementById("imgInput")?.files[0];
-
-  if(!text) return;
-
-  if(section==="objetivos"){
-    data.users[user.name].objetivos.push({text,done:false});
-    saveData();
-    showSection(section);
-    return;
-  }
-
-  if(file){
-    const reader = new FileReader();
-    reader.onload = e=>{
-      data[section].push({text,user:user.name,img:e.target.result});
-      saveData();
-      showSection(section);
-    };
-    reader.readAsDataURL(file);
-  }else{
-    data[section].push({text,user:user.name});
-    saveData();
-    showSection(section);
-  }
+function goBack() {
+  document.getElementById('content').innerHTML = '';
+  document.getElementById('mainMenu').style.display = 'grid';
 }
 
-function toggleObjetivo(name,i){
-  let obj=data.users[name].objetivos[i];
-  obj.done=!obj.done;
-  saveData();
-  showSection("objetivos");
-}
+/* ITEMS */
+function addItem(section) {
+  const text = document.getElementById('newItem').value;
+  if (!text) return;
 
-function removeItem(section,i){
-  data[section].splice(i,1);
+  data[section].push({
+    text,
+    user: user.name
+  });
+
   saveData();
   showSection(section);
 }
 
-function goBack(){
-  content.innerHTML="";
-  mainMenu.style.display="grid";
-}
+/* AUTO LOGIN */
+window.onload = function() {
+  const savedUser = localStorage.getItem("user");
 
-document.addEventListener("DOMContentLoaded",()=>{
-  const saved=localStorage.getItem("user");
-  if(saved){
-    user=JSON.parse(saved);
+  if (savedUser) {
+    user = JSON.parse(savedUser);
     startApp();
   }
-});
+};
 </script>
 
 </body>
