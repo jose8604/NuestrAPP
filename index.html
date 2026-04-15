@@ -1,79 +1,98 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Nuestra App</title>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nuestra App</title>
 
-  <style>
-    body {
-      font-family: 'Poppins', sans-serif;
-      margin: 0;
-      background: #fdf6e3;
-      text-align: center;
-    }
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
 
-    header {
-      background: #ffe066;
-      padding: 15px;
-      font-size: 20px;
-      font-weight: bold;
-    }
+<style>
+body {
+  font-family: 'Poppins', sans-serif;
+  margin: 0;
+  background: #fdf6e3;
+  text-align: center;
+}
 
-    .container { padding: 20px; }
+header {
+  background: #ffe066;
+  padding: 15px;
+  font-weight: bold;
+}
 
-    .menu {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 15px;
-      margin-top: 20px;
-    }
+.container {
+  padding: 20px;
+}
 
-    .menu button {
-      background: #fff3bf;
-      border: none;
-      border-radius: 20px;
-      padding: 20px;
-      font-size: 16px;
-      cursor: pointer;
-    }
+.menu {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
 
-    .card {
-      background: white;
-      padding: 20px;
-      border-radius: 20px;
-    }
+.menu button {
+  background: #fff3bf;
+  border-radius: 20px;
+  padding: 20px;
+  font-size: 16px;
+}
 
-    input {
-      padding: 10px;
-      width: 80%;
-      margin: 10px 0;
-      border-radius: 10px;
-      border: 1px solid #ddd;
-    }
+.card {
+  background: white;
+  padding: 20px;
+  border-radius: 20px;
+}
 
-    button {
-      padding: 10px 15px;
-      border-radius: 10px;
-      border: none;
-      cursor: pointer;
-      background: #ffe066;
-    }
+input {
+  padding: 10px;
+  width: 80%;
+  margin: 10px;
+  border-radius: 10px;
+}
 
-    li {
-      margin: 10px 0;
-      background: #fff9db;
-      padding: 10px;
-      border-radius: 10px;
-    }
+button {
+  background: #ffe066;
+  border-radius: 10px;
+  padding: 10px;
+}
 
-    .back {
-      position: absolute;
-      left: 10px;
-      top: 10px;
-    }
-  </style>
+li {
+  background: #fff9db;
+  margin: 10px;
+  padding: 10px;
+  border-radius: 10px;
+  text-align: left;
+}
+
+/* 🔵 CIRCULO PROGRESO */
+.progress {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  background: conic-gradient(#ffd43b var(--progress), #eee 0%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: auto;
+}
+
+.progress img {
+  width: 55px;
+  height: 55px;
+  border-radius: 50%;
+}
+
+.back {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+}
+
+.user-row {
+  margin-bottom: 25px;
+}
+</style>
 </head>
 
 <body>
@@ -88,6 +107,7 @@
 </div>
 
 <div id="app" style="display:none;" class="container">
+
   <div id="mainMenu" class="menu">
     <button onclick="showSection('objetivos')">🎯 Objetivos</button>
     <button onclick="showSection('planes')">📅 Planes</button>
@@ -130,9 +150,7 @@ let data = {
 function loadData() {
   db.collection("app").doc("data")
     .onSnapshot((doc) => {
-      if (doc.exists) {
-        data = doc.data();
-      }
+      if (doc.exists) data = doc.data();
     });
 }
 
@@ -142,17 +160,17 @@ async function saveData() {
 
 async function login() {
   const name = document.getElementById('name').value;
-  const photoInput = document.getElementById('photo');
+  const file = document.getElementById('photo').files[0];
 
-  if (!name) return alert('Pon un nombre');
+  if (!name) return alert("Pon nombre");
 
   let photo = null;
 
-  if (photoInput.files[0]) {
+  if (file) {
     photo = await new Promise(resolve => {
       const reader = new FileReader();
       reader.onload = e => resolve(e.target.result);
-      reader.readAsDataURL(photoInput.files[0]);
+      reader.readAsDataURL(file);
     });
   }
 
@@ -161,9 +179,9 @@ async function login() {
 
   await db.collection("app").doc("data").set({
     users: {
-      [user.name]: {
-        name: user.name,
-        photo: user.photo,
+      [name]: {
+        name,
+        photo,
         objetivos: []
       }
     }
@@ -180,89 +198,103 @@ function startApp() {
 
 function showSection(section) {
   document.getElementById('mainMenu').style.display = 'none';
-  const container = document.getElementById('content');
+  const c = document.getElementById('content');
 
   if (section === "objetivos") {
-    container.innerHTML = `
+    c.innerHTML = `
       <button class="back" onclick="goBack()">⬅</button>
       <div class="card">
-        <h2>🎯 Objetivos</h2>
 
-        ${Object.values(data.users).map(u => `
-          <div>
-            <img src="${u.photo || ''}" width="60" style="border-radius:50%">
+        ${Object.values(data.users).map(u => {
+          const total = u.objetivos.length;
+          const done = u.objetivos.filter(o=>o.done).length;
+          const percent = total ? (done/total)*100 : 0;
+
+          return `
+          <div class="user-row">
+
+            <div class="progress" style="--progress:${percent}%">
+              <img src="${u.photo || ''}">
+            </div>
+
             <ul>
-              ${(u.objetivos || []).map((obj,i)=>`
-                <li>${obj.text}
-                <button onclick="toggleObjetivo('${u.name}',${i})">✔</button>
+              ${u.objetivos.map((o,i)=>`
+                <li>
+                  ${o.text}
+                  <button onclick="toggleObjetivo('${u.name}',${i})">✔</button>
                 </li>
               `).join('')}
             </ul>
+
           </div>
-        `).join('')}
+          `;
+        }).join('')}
 
         <input id="newItem" placeholder="Nuevo objetivo">
         <button onclick="addItem('objetivos')">Añadir</button>
+
       </div>
     `;
     return;
   }
 
-  container.innerHTML = `
+  c.innerHTML = `
     <button class="back" onclick="goBack()">⬅</button>
     <div class="card">
-      <h2>${section}</h2>
+
       <input id="newItem">
       <button onclick="addItem('${section}')">Añadir</button>
+
       <ul>
         ${data[section].map((item,i)=>`
           <li>
+            <img src="${data.users[item.user]?.photo}" width="30" style="border-radius:50%">
             ${item.text}
             <button onclick="removeItem('${section}',${i})">❌</button>
           </li>
         `).join('')}
       </ul>
+
     </div>
   `;
 }
 
-function goBack() {
-  document.getElementById('content').innerHTML = '';
-  document.getElementById('mainMenu').style.display = 'grid';
+function goBack(){
+  content.innerHTML="";
+  mainMenu.style.display="grid";
 }
 
-function addItem(section) {
+function addItem(section){
   const text = document.getElementById('newItem').value;
-  if (!text) return;
+  if(!text) return;
 
-  if (section === "objetivos") {
-    data.users[user.name].objetivos.push({ text, done:false });
+  if(section==="objetivos"){
+    data.users[user.name].objetivos.push({text,done:false});
   } else {
-    data[section].push({ text });
+    data[section].push({text,user:user.name});
   }
 
   saveData();
   showSection(section);
 }
 
-function removeItem(section,index){
-  data[section].splice(index,1);
+function removeItem(section,i){
+  data[section].splice(i,1);
   saveData();
   showSection(section);
 }
 
-function toggleObjetivo(userName,index){
-  let obj = data.users[userName].objetivos[index];
+function toggleObjetivo(userName,i){
+  let obj = data.users[userName].objetivos[i];
   obj.done = !obj.done;
   saveData();
   showSection("objetivos");
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-  const savedUser = localStorage.getItem("user");
-
-  if (savedUser) {
-    user = JSON.parse(savedUser);
+document.addEventListener("DOMContentLoaded",()=>{
+  const saved = localStorage.getItem("user");
+  if(saved){
+    user = JSON.parse(saved);
     startApp();
   }
 });
