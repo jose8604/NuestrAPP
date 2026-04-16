@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Nuestra App</title>
-
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
 
 <style>
@@ -14,14 +13,12 @@ body{
   background:#fdf6e3;
   text-align:center;
 }
-
 header{
   background:#ffe066;
   padding:15px;
   font-weight:bold;
   position:relative;
 }
-
 .menu-btn{
   position:absolute;
   left:10px;
@@ -29,7 +26,6 @@ header{
   font-size:22px;
   cursor:pointer;
 }
-
 .dropdown{
   display:none;
   position:absolute;
@@ -41,14 +37,12 @@ header{
   box-shadow:0 4px 12px rgba(0,0,0,.15);
   z-index:99;
 }
-
 .menu{
   display:grid;
   grid-template-columns:1fr 1fr;
   gap:15px;
   padding:20px;
 }
-
 .menu button{
   background:#fff3bf;
   border:none;
@@ -56,14 +50,12 @@ header{
   padding:22px;
   font-size:16px;
 }
-
 .card{
   background:white;
   margin:15px;
   padding:20px;
   border-radius:20px;
 }
-
 input{
   margin:8px;
   padding:12px;
@@ -72,14 +64,13 @@ input{
   width:80%;
   box-sizing:border-box;
 }
-
 button{
   background:#ffe066;
   border:none;
   border-radius:12px;
   padding:10px 14px;
+  cursor:pointer;
 }
-
 li{
   background:#fff9db;
   margin:10px 0;
@@ -88,20 +79,17 @@ li{
   list-style:none;
   text-align:left;
 }
-
 .back{
   position:absolute;
   left:10px;
   top:10px;
 }
-
 .user-header{
   display:flex;
   align-items:center;
   gap:10px;
   margin-top:15px;
 }
-
 .progress{
   width:72px;
   height:72px;
@@ -111,19 +99,16 @@ li{
   align-items:center;
   justify-content:center;
 }
-
 .progress img{
   width:56px;
   height:56px;
   border-radius:50%;
   object-fit:cover;
 }
-
 .done{
   text-decoration:line-through;
   opacity:.6;
 }
-
 .small-photo{
   width:32px;
   height:32px;
@@ -132,11 +117,15 @@ li{
   vertical-align:middle;
   margin-right:8px;
 }
-
 .post-img{
   width:120px;
   border-radius:12px;
   margin-top:8px;
+}
+.auth-title{
+  font-size:22px;
+  margin-top:25px;
+  font-weight:bold;
 }
 </style>
 </head>
@@ -152,13 +141,19 @@ li{
 </div>
 </header>
 
+<!-- LOGIN -->
 <div id="auth">
-<br>
-<input id="nameInput" placeholder="Tu nombre"><br>
-<input type="file" id="photoInput" accept="image/*"><br>
+<div class="auth-title">Iniciar sesión</div>
+
+<input id="nameInput" placeholder="Usuario"><br>
+<input id="passInput" type="password" placeholder="Contraseña"><br>
+<input id="photoInput" type="file" accept="image/*"><br>
+
 <button onclick="login()">Entrar</button>
+<button onclick="register()">Crear cuenta</button>
 </div>
 
+<!-- APP -->
 <div id="app" style="display:none">
 
 <div id="mainMenu" class="menu">
@@ -210,8 +205,8 @@ function logout(){
   location.reload();
 }
 
-/* COMPRESIÓN MÓVIL PRO */
-function compressImage(file,size=280,quality=0.82){
+/* IMAGEN */
+function compressImage(file,size=320,quality=0.85){
   return new Promise(resolve=>{
     const reader = new FileReader();
 
@@ -242,8 +237,7 @@ function compressImage(file,size=280,quality=0.82){
         const ctx = canvas.getContext("2d");
         ctx.drawImage(img,0,0,w,h);
 
-        const result = canvas.toDataURL("image/jpeg",quality);
-        resolve(result);
+        resolve(canvas.toDataURL("image/jpeg",quality));
       };
 
       img.src = e.target.result;
@@ -257,7 +251,9 @@ function compressImage(file,size=280,quality=0.82){
 function loadData(){
   db.collection("app").doc("data")
   .onSnapshot(doc=>{
-    if(doc.exists) data = doc.data();
+    if(doc.exists){
+      data = doc.data();
+    }
   });
 }
 
@@ -265,34 +261,72 @@ async function saveData(){
   await db.collection("app").doc("data").set(data);
 }
 
-/* LOGIN PRO MÓVIL */
+/* CREAR CUENTA */
+async function register(){
+
+  const name = nameInput.value.trim();
+  const pass = passInput.value.trim();
+  const file = photoInput.files[0];
+
+  if(!name || !pass) return alert("Completa usuario y contraseña");
+
+  if(data.users[name]){
+    return alert("Ese usuario ya existe");
+  }
+
+  let photo = null;
+
+  if(file){
+    photo = await compressImage(file);
+  }
+
+  data.users[name] = {
+    name:name,
+    password:pass,
+    photo:photo,
+    objetivos:[]
+  };
+
+  await saveData();
+
+  user = {name:name};
+  localStorage.setItem("user",JSON.stringify(user));
+
+  startApp();
+}
+
+/* LOGIN */
 async function login(){
 
   const name = nameInput.value.trim();
-  const file = photoInput.files[0];
+  const pass = passInput.value.trim();
 
-  if(!name) return alert("Pon nombre");
+  if(!name || !pass) return alert("Pon usuario y contraseña");
 
-  let photoData = null;
+  const doc = await db.collection("app").doc("data").get();
 
-  if(file){
-    photoData = await compressImage(file,320,0.85);
+  if(doc.exists){
+    data = doc.data();
   }
 
-  user = {name,photo:photoData};
-  localStorage.setItem("user",JSON.stringify({
-    name:user.name
-  }));
+  const found = data.users[name];
 
-  await db.collection("app").doc("data").set({
-    users:{
-      [name]:{
-        name:name,
-        photo:photoData,
-        objetivos:[]
-      }
-    }
-  },{merge:true});
+  if(!found){
+    return alert("Usuario no existe");
+  }
+
+  /* migración antigua sin password */
+  if(!found.password){
+    found.password = pass;
+    await saveData();
+  }
+
+  if(found.password !== pass){
+    return alert("Contraseña incorrecta");
+  }
+
+  user = {name:name};
+  localStorage.setItem("user",JSON.stringify(user));
 
   startApp();
 }
@@ -357,7 +391,7 @@ ${o.text}
 return;
 }
 
-/* OTRAS SECCIONES */
+/* OTRAS */
 content.innerHTML = `
 <button class="back" onclick="goBack()">⬅</button>
 
@@ -391,7 +425,7 @@ ${item.img ? `<br><img class="post-img" src="${item.img}">` : ''}
 `;
 }
 
-/* AÑADIR ITEMS */
+/* AÑADIR */
 async function addItem(section){
 
 const text = newItem.value.trim();
@@ -400,14 +434,15 @@ const file = document.getElementById("imgInput")?.files[0];
 if(!text) return;
 
 if(section==="objetivos"){
-  data.users[user.name].objetivos.push({
-    text:text,
-    done:false
-  });
 
-  await saveData();
-  showSection(section);
-  return;
+data.users[user.name].objetivos.push({
+  text:text,
+  done:false
+});
+
+await saveData();
+showSection(section);
+return;
 }
 
 let img = null;
@@ -448,13 +483,20 @@ mainMenu.style.display="grid";
 }
 
 /* AUTO LOGIN */
-document.addEventListener("DOMContentLoaded",()=>{
+document.addEventListener("DOMContentLoaded",async ()=>{
+
+loadData();
 
 const saved = localStorage.getItem("user");
 
 if(saved){
-  user = JSON.parse(saved);
+
+user = JSON.parse(saved);
+
+setTimeout(()=>{
   startApp();
+},500);
+
 }
 
 });
