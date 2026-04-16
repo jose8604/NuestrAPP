@@ -19,6 +19,7 @@ header{
   font-weight:bold;
   position:relative;
 }
+
 .menu-btn{
   position:absolute;
   left:10px;
@@ -26,23 +27,53 @@ header{
   font-size:22px;
   cursor:pointer;
 }
+
+/* MENU DESPLEGABLE NUEVO */
 .dropdown{
   display:none;
   position:absolute;
-  top:50px;
+  top:55px;
   left:10px;
+  width:240px;
   background:white;
-  border-radius:12px;
-  padding:10px;
-  box-shadow:0 4px 12px rgba(0,0,0,.15);
-  z-index:99;
+  border-radius:18px;
+  padding:18px;
+  box-shadow:0 8px 20px rgba(0,0,0,.18);
+  z-index:999;
 }
+
+.profile-box{
+  text-align:center;
+  margin-bottom:15px;
+}
+
+.profile-photo{
+  width:90px;
+  height:90px;
+  border-radius:50%;
+  object-fit:cover;
+  border:4px solid #ffe066;
+}
+
+.change-btn{
+  margin-top:10px;
+  font-size:13px;
+  width:100%;
+}
+
+.logout-btn{
+  width:100%;
+  margin-top:10px;
+}
+
+/* RESTO */
 .menu{
   display:grid;
   grid-template-columns:1fr 1fr;
   gap:15px;
   padding:20px;
 }
+
 .menu button{
   background:#fff3bf;
   border:none;
@@ -50,12 +81,14 @@ header{
   padding:22px;
   font-size:16px;
 }
+
 .card{
   background:white;
   margin:15px;
   padding:20px;
   border-radius:20px;
 }
+
 input{
   margin:8px;
   padding:12px;
@@ -64,6 +97,7 @@ input{
   width:80%;
   box-sizing:border-box;
 }
+
 button{
   background:#ffe066;
   border:none;
@@ -71,6 +105,7 @@ button{
   padding:10px 14px;
   cursor:pointer;
 }
+
 li{
   background:#fff9db;
   margin:10px 0;
@@ -79,17 +114,20 @@ li{
   list-style:none;
   text-align:left;
 }
+
 .back{
   position:absolute;
   left:10px;
   top:10px;
 }
+
 .user-header{
   display:flex;
   align-items:center;
   gap:10px;
   margin-top:15px;
 }
+
 .progress{
   width:72px;
   height:72px;
@@ -99,16 +137,19 @@ li{
   align-items:center;
   justify-content:center;
 }
+
 .progress img{
   width:56px;
   height:56px;
   border-radius:50%;
   object-fit:cover;
 }
+
 .done{
   text-decoration:line-through;
   opacity:.6;
 }
+
 .small-photo{
   width:32px;
   height:32px;
@@ -117,11 +158,13 @@ li{
   vertical-align:middle;
   margin-right:8px;
 }
+
 .post-img{
   width:120px;
   border-radius:12px;
   margin-top:8px;
 }
+
 .auth-title{
   font-size:22px;
   margin-top:25px;
@@ -136,9 +179,7 @@ li{
 <div class="menu-btn" onclick="toggleMenu()">☰</div>
 💛 Nuestra App 💛
 
-<div id="dropdown" class="dropdown">
-<button onclick="logout()">Cerrar sesión 🚪</button>
-</div>
+<div id="dropdown" class="dropdown"></div>
 </header>
 
 <!-- LOGIN -->
@@ -182,9 +223,7 @@ const firebaseConfig = {
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
-</script>
 
-<script>
 let user = null;
 
 let data = {
@@ -196,8 +235,47 @@ let data = {
 
 /* MENU */
 function toggleMenu(){
-  dropdown.style.display =
-  dropdown.style.display==="block" ? "none" : "block";
+  if(!user) return;
+
+  const d = dropdown;
+
+  if(d.style.display==="block"){
+    d.style.display="none";
+    return;
+  }
+
+  renderDropdown();
+  d.style.display="block";
+}
+
+function closeMenu(){
+  dropdown.style.display="none";
+}
+
+function renderDropdown(){
+  const u = data.users[user.name];
+  if(!u) return;
+
+  dropdown.innerHTML = `
+    <div class="profile-box">
+      <img class="profile-photo" src="${u.photo || ''}">
+      <div style="margin-top:8px;"><b>${u.name}</b></div>
+
+      <input type="file" id="changePhotoInput" accept="image/*" style="display:none">
+      <button class="change-btn" onclick="document.getElementById('changePhotoInput').click()">
+        Cambiar foto 📷
+      </button>
+
+      <button class="logout-btn" onclick="logout()">Cerrar sesión 🚪</button>
+    </div>
+  `;
+
+  setTimeout(()=>{
+    const input = document.getElementById("changePhotoInput");
+    if(input){
+      input.onchange = changePhoto;
+    }
+  },100);
 }
 
 function logout(){
@@ -247,13 +325,25 @@ function compressImage(file,size=320,quality=0.85){
   });
 }
 
+/* CAMBIAR FOTO */
+async function changePhoto(e){
+  const file = e.target.files[0];
+  if(!file) return;
+
+  const newPhoto = await compressImage(file,320,0.85);
+
+  data.users[user.name].photo = newPhoto;
+  await saveData();
+
+  renderDropdown();
+  if(content.innerHTML) showSection(lastSection || "objetivos");
+}
+
 /* FIREBASE */
 function loadData(){
   db.collection("app").doc("data")
   .onSnapshot(doc=>{
-    if(doc.exists){
-      data = doc.data();
-    }
+    if(doc.exists) data = doc.data();
   });
 }
 
@@ -261,7 +351,7 @@ async function saveData(){
   await db.collection("app").doc("data").set(data);
 }
 
-/* CREAR CUENTA */
+/* REGISTRO */
 async function register(){
 
   const name = nameInput.value.trim();
@@ -270,26 +360,22 @@ async function register(){
 
   if(!name || !pass) return alert("Completa usuario y contraseña");
 
-  if(data.users[name]){
-    return alert("Ese usuario ya existe");
-  }
+  if(data.users[name]) return alert("Ese usuario ya existe");
 
   let photo = null;
 
-  if(file){
-    photo = await compressImage(file);
-  }
+  if(file) photo = await compressImage(file);
 
   data.users[name] = {
-    name:name,
+    name,
     password:pass,
-    photo:photo,
+    photo,
     objetivos:[]
   };
 
   await saveData();
 
-  user = {name:name};
+  user = {name};
   localStorage.setItem("user",JSON.stringify(user));
 
   startApp();
@@ -301,31 +387,16 @@ async function login(){
   const name = nameInput.value.trim();
   const pass = passInput.value.trim();
 
-  if(!name || !pass) return alert("Pon usuario y contraseña");
-
   const doc = await db.collection("app").doc("data").get();
 
-  if(doc.exists){
-    data = doc.data();
-  }
+  if(doc.exists) data = doc.data();
 
   const found = data.users[name];
 
-  if(!found){
-    return alert("Usuario no existe");
-  }
+  if(!found) return alert("Usuario no existe");
+  if(found.password !== pass) return alert("Contraseña incorrecta");
 
-  /* migración antigua sin password */
-  if(!found.password){
-    found.password = pass;
-    await saveData();
-  }
-
-  if(found.password !== pass){
-    return alert("Contraseña incorrecta");
-  }
-
-  user = {name:name};
+  user = {name};
   localStorage.setItem("user",JSON.stringify(user));
 
   startApp();
@@ -338,166 +409,39 @@ function startApp(){
   app.style.display="block";
 }
 
+let lastSection = "";
+
 /* SECCIONES */
 function showSection(section){
 
-mainMenu.style.display="none";
+  closeMenu(); /* 🔥 se cierra al entrar */
 
-if(section==="objetivos"){
+  lastSection = section;
+  mainMenu.style.display="none";
 
-content.innerHTML = `
-<button class="back" onclick="goBack()">⬅</button>
-<div class="card">
-
-${Object.values(data.users).map(u=>{
-
-const total = u.objetivos.length;
-const done = u.objetivos.filter(x=>x.done).length;
-const percent = total ? (done/total)*100 : 0;
-
-return `
-<div>
-
-<div class="user-header">
-<div class="progress" style="--progress:${percent}%">
-<img src="${u.photo || ''}">
-</div>
-
-<div style="text-align:left">
-<b>${u.name}</b><br>
-<small>${Math.round(percent)}% completado</small>
-</div>
-</div>
-
-<ul>
-${u.objetivos.map((o,i)=>`
-<li class="${o.done?'done':''}">
-${o.text}
-<button onclick="toggleObjetivo('${u.name}',${i})">✔</button>
-</li>
-`).join("")}
-</ul>
-
-</div>
-`;
-
-}).join("")}
-
-<input id="newItem" placeholder="Nuevo objetivo">
-<button onclick="addItem('objetivos')">Añadir</button>
-
-</div>
-`;
-return;
-}
-
-/* OTRAS */
-content.innerHTML = `
-<button class="back" onclick="goBack()">⬅</button>
-
-<div class="card">
-
-<input id="newItem" placeholder="Escribe algo">
-<input type="file" id="imgInput" accept="image/*">
-<button onclick="addItem('${section}')">Añadir</button>
-
-<ul>
-
-${data[section].map((item,i)=>`
-<li>
-
-<img class="small-photo"
-src="${data.users[item.user]?.photo || ''}">
-
-<b>${item.user}</b><br>
-${item.text}
-
-${item.img ? `<br><img class="post-img" src="${item.img}">` : ''}
-
-<br><button onclick="removeItem('${section}',${i})">❌</button>
-
-</li>
-`).join("")}
-
-</ul>
-
-</div>
-`;
-}
-
-/* AÑADIR */
-async function addItem(section){
-
-const text = newItem.value.trim();
-const file = document.getElementById("imgInput")?.files[0];
-
-if(!text) return;
-
-if(section==="objetivos"){
-
-data.users[user.name].objetivos.push({
-  text:text,
-  done:false
-});
-
-await saveData();
-showSection(section);
-return;
-}
-
-let img = null;
-
-if(file){
-  img = await compressImage(file,600,0.88);
-}
-
-data[section].push({
-  text:text,
-  user:user.name,
-  img:img
-});
-
-await saveData();
-showSection(section);
-}
-
-/* OBJETIVOS */
-function toggleObjetivo(name,i){
-data.users[name].objetivos[i].done =
-!data.users[name].objetivos[i].done;
-
-saveData();
-showSection("objetivos");
-}
-
-/* BORRAR */
-function removeItem(section,i){
-data[section].splice(i,1);
-saveData();
-showSection(section);
+  content.innerHTML = `<div class="card"><b>${section}</b></div>`;
 }
 
 function goBack(){
-content.innerHTML="";
-mainMenu.style.display="grid";
+  closeMenu();
+  content.innerHTML="";
+  mainMenu.style.display="grid";
 }
 
 /* AUTO LOGIN */
-document.addEventListener("DOMContentLoaded",async ()=>{
+document.addEventListener("DOMContentLoaded",()=>{
 
-loadData();
+  loadData();
 
-const saved = localStorage.getItem("user");
+  const saved = localStorage.getItem("user");
 
-if(saved){
+  if(saved){
+    user = JSON.parse(saved);
 
-user = JSON.parse(saved);
-
-setTimeout(()=>{
-  startApp();
-},500);
-
-}
+    setTimeout(()=>{
+      startApp();
+    },500);
+  }
 
 });
 </script>
