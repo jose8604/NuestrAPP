@@ -8,111 +8,135 @@
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
 
 <style>
-body {
-  font-family: 'Poppins', sans-serif;
-  margin: 0;
-  background: #fdf6e3;
-  text-align: center;
+body{
+  font-family:'Poppins',sans-serif;
+  margin:0;
+  background:#fdf6e3;
+  text-align:center;
 }
 
-header {
-  background: #ffe066;
-  padding: 15px;
-  font-weight: bold;
-  position: relative;
+header{
+  background:#ffe066;
+  padding:15px;
+  font-weight:bold;
+  position:relative;
 }
 
-/* ☰ MENU */
-.menu-btn {
-  position: absolute;
-  left: 10px;
-  top: 10px;
-  font-size: 22px;
-  cursor: pointer;
+.menu-btn{
+  position:absolute;
+  left:10px;
+  top:10px;
+  font-size:22px;
+  cursor:pointer;
 }
 
-.dropdown {
-  display: none;
-  position: absolute;
-  top: 50px;
-  left: 10px;
-  background: white;
-  border-radius: 10px;
-  padding: 10px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+.dropdown{
+  display:none;
+  position:absolute;
+  top:50px;
+  left:10px;
+  background:white;
+  border-radius:12px;
+  padding:10px;
+  box-shadow:0 4px 12px rgba(0,0,0,.15);
+  z-index:99;
 }
 
-.menu {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 15px;
-  padding: 20px;
+.menu{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:15px;
+  padding:20px;
 }
 
-.menu button {
-  background: #fff3bf;
-  border-radius: 20px;
-  padding: 20px;
+.menu button{
+  background:#fff3bf;
+  border:none;
+  border-radius:20px;
+  padding:22px;
+  font-size:16px;
 }
 
-.card {
-  background: white;
-  padding: 20px;
-  border-radius: 20px;
+.card{
+  background:white;
+  margin:15px;
+  padding:20px;
+  border-radius:20px;
 }
 
-input {
-  margin: 10px;
-  padding: 10px;
-  border-radius: 10px;
+input{
+  margin:8px;
+  padding:12px;
+  border-radius:12px;
+  border:1px solid #ddd;
+  width:80%;
+  box-sizing:border-box;
 }
 
-button {
-  background: #ffe066;
-  padding: 10px;
-  border-radius: 10px;
+button{
+  background:#ffe066;
+  border:none;
+  border-radius:12px;
+  padding:10px 14px;
 }
 
-li {
-  background: #fff9db;
-  margin: 10px;
-  padding: 10px;
-  border-radius: 10px;
-  text-align: left;
+li{
+  background:#fff9db;
+  margin:10px 0;
+  padding:10px;
+  border-radius:12px;
+  list-style:none;
+  text-align:left;
 }
 
-/* progreso */
-.progress {
-  width: 70px;
-  height: 70px;
-  border-radius: 50%;
-  background: conic-gradient(#51cf66 var(--progress), #eee 0%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.back{
+  position:absolute;
+  left:10px;
+  top:10px;
 }
 
-.progress img {
-  width: 55px;
-  height: 55px;
-  border-radius: 50%;
+.user-header{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-top:15px;
 }
 
-.user-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+.progress{
+  width:72px;
+  height:72px;
+  border-radius:50%;
+  background:conic-gradient(#51cf66 var(--progress), #ececec 0%);
+  display:flex;
+  align-items:center;
+  justify-content:center;
 }
 
-.done {
-  text-decoration: line-through;
-  opacity: 0.6;
+.progress img{
+  width:56px;
+  height:56px;
+  border-radius:50%;
+  object-fit:cover;
 }
 
-.back {
-  position: absolute;
-  left: 10px;
-  top: 10px;
+.done{
+  text-decoration:line-through;
+  opacity:.6;
+}
+
+.small-photo{
+  width:32px;
+  height:32px;
+  border-radius:50%;
+  object-fit:cover;
+  vertical-align:middle;
+  margin-right:8px;
+}
+
+.post-img{
+  width:120px;
+  border-radius:12px;
+  margin-top:8px;
 }
 </style>
 </head>
@@ -120,30 +144,31 @@ li {
 <body>
 
 <header>
-  <div class="menu-btn" onclick="toggleMenu()">☰</div>
-  💛 Nuestra App 💛
+<div class="menu-btn" onclick="toggleMenu()">☰</div>
+💛 Nuestra App 💛
 
-  <div id="dropdown" class="dropdown">
-    <button onclick="logout()">Cerrar sesión 🚪</button>
-  </div>
+<div id="dropdown" class="dropdown">
+<button onclick="logout()">Cerrar sesión 🚪</button>
+</div>
 </header>
 
 <div id="auth">
-  <input id="nameInput" placeholder="Tu nombre"><br>
-  <input type="file" id="photoInput"><br>
-  <button onclick="login()">Entrar</button>
+<br>
+<input id="nameInput" placeholder="Tu nombre"><br>
+<input type="file" id="photoInput" accept="image/*"><br>
+<button onclick="login()">Entrar</button>
 </div>
 
 <div id="app" style="display:none">
 
-  <div id="mainMenu" class="menu">
-    <button onclick="showSection('objetivos')">🎯 Objetivos</button>
-    <button onclick="showSection('planes')">📅 Planes</button>
-    <button onclick="showSection('restaurantes')">🍽️ Restaurantes</button>
-    <button onclick="showSection('sitios')">📍 Sitios</button>
-  </div>
+<div id="mainMenu" class="menu">
+<button onclick="showSection('objetivos')">🎯 Objetivos</button>
+<button onclick="showSection('planes')">📅 Planes</button>
+<button onclick="showSection('restaurantes')">🍽️ Restaurantes</button>
+<button onclick="showSection('sitios')">📍 Sitios</button>
+</div>
 
-  <div id="content"></div>
+<div id="content"></div>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -168,16 +193,16 @@ const db = firebase.firestore();
 let user = null;
 
 let data = {
-  users: {},
-  planes: [],
-  restaurantes: [],
-  sitios: []
+  users:{},
+  planes:[],
+  restaurantes:[],
+  sitios:[]
 };
 
 /* MENU */
 function toggleMenu(){
-  const d = document.getElementById("dropdown");
-  d.style.display = d.style.display === "block" ? "none" : "block";
+  dropdown.style.display =
+  dropdown.style.display==="block" ? "none" : "block";
 }
 
 function logout(){
@@ -185,52 +210,87 @@ function logout(){
   location.reload();
 }
 
+/* COMPRESIÓN MÓVIL PRO */
+function compressImage(file,size=280,quality=0.82){
+  return new Promise(resolve=>{
+    const reader = new FileReader();
+
+    reader.onload = e=>{
+      const img = new Image();
+
+      img.onload = ()=>{
+        const canvas = document.createElement("canvas");
+
+        let w = img.width;
+        let h = img.height;
+
+        if(w>h){
+          if(w>size){
+            h *= size/w;
+            w = size;
+          }
+        }else{
+          if(h>size){
+            w *= size/h;
+            h = size;
+          }
+        }
+
+        canvas.width = w;
+        canvas.height = h;
+
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img,0,0,w,h);
+
+        const result = canvas.toDataURL("image/jpeg",quality);
+        resolve(result);
+      };
+
+      img.src = e.target.result;
+    };
+
+    reader.readAsDataURL(file);
+  });
+}
+
 /* FIREBASE */
 function loadData(){
   db.collection("app").doc("data")
   .onSnapshot(doc=>{
-    if(doc.exists){
-      data = doc.data();
-      console.log("DATOS", data);
-    }
+    if(doc.exists) data = doc.data();
   });
 }
 
 async function saveData(){
-  console.log("GUARDANDO...");
   await db.collection("app").doc("data").set(data);
 }
 
-/* LOGIN */
+/* LOGIN PRO MÓVIL */
 async function login(){
-  console.log("LOGIN CLICK");
 
-  const name = document.getElementById("nameInput").value;
-  const file = document.getElementById("photoInput").files[0];
+  const name = nameInput.value.trim();
+  const file = photoInput.files[0];
 
   if(!name) return alert("Pon nombre");
 
   let photoData = null;
 
   if(file){
-    console.log("LEYENDO FOTO");
-    photoData = await new Promise(r=>{
-      const reader = new FileReader();
-      reader.onload = e => r(e.target.result);
-      reader.readAsDataURL(file);
-    });
-  } else {
-    console.log("SIN FOTO");
+    photoData = await compressImage(file,320,0.85);
   }
 
-  console.log("GUARDANDO EN FIREBASE");
-
-  user = {name, photo:photoData};
-  localStorage.setItem("user", JSON.stringify(user));
+  user = {name,photo:photoData};
+  localStorage.setItem("user",JSON.stringify({
+    name:user.name
+  }));
 
   await db.collection("app").doc("data").set({
     users:{
-      [name]:{name,photo:photoData,objetivos:[]}
+      [name]:{
+        name:name,
+        photo:photoData,
+        objetivos:[]
+      }
     }
   },{merge:true});
 
@@ -240,127 +300,163 @@ async function login(){
 /* APP */
 function startApp(){
   loadData();
-  document.getElementById("auth").style.display="none";
-  document.getElementById("app").style.display="block";
+  auth.style.display="none";
+  app.style.display="block";
 }
 
 /* SECCIONES */
 function showSection(section){
-  mainMenu.style.display="none";
 
-  if(section==="objetivos"){
-    content.innerHTML = `
-    <button class="back" onclick="goBack()">⬅</button>
-    <div class="card">
+mainMenu.style.display="none";
 
-    ${Object.values(data.users).map(u=>{
-      const total=u.objetivos.length;
-      const done=u.objetivos.filter(o=>o.done).length;
-      const percent=total?(done/total)*100:0;
+if(section==="objetivos"){
 
-      return `
-      <div>
-        <div class="user-header">
-          <div class="progress" style="--progress:${percent}%">
-            <img src="${u.photo||''}">
-          </div>
-          <b>${u.name}</b>
-        </div>
+content.innerHTML = `
+<button class="back" onclick="goBack()">⬅</button>
+<div class="card">
 
-        <ul>
-        ${u.objetivos.map((o,i)=>`
-          <li class="${o.done?'done':''}">
-            ${o.text}
-            <button onclick="toggleObjetivo('${u.name}',${i})">✔</button>
-          </li>
-        `).join('')}
-        </ul>
-      </div>
-      `;
-    }).join('')}
+${Object.values(data.users).map(u=>{
 
-    <input id="newItem">
-    <button onclick="addItem('objetivos')">Añadir</button>
+const total = u.objetivos.length;
+const done = u.objetivos.filter(x=>x.done).length;
+const percent = total ? (done/total)*100 : 0;
 
-    </div>`;
-    return;
-  }
+return `
+<div>
 
-  content.innerHTML = `
-  <button class="back" onclick="goBack()">⬅</button>
-  <div class="card">
+<div class="user-header">
+<div class="progress" style="--progress:${percent}%">
+<img src="${u.photo || ''}">
+</div>
 
-  <input id="newItem">
-  <input type="file" id="imgInput">
-  <button onclick="addItem('${section}')">Añadir</button>
+<div style="text-align:left">
+<b>${u.name}</b><br>
+<small>${Math.round(percent)}% completado</small>
+</div>
+</div>
 
-  <ul>
-  ${data[section].map((item,i)=>`
-    <li>
-      <img src="${data.users[item.user]?.photo}" width="30" style="border-radius:50%">
-      ${item.text}
-      ${item.img?`<br><img src="${item.img}" width="100">`:''}
-      <button onclick="removeItem('${section}',${i})">❌</button>
-    </li>
-  `).join('')}
-  </ul>
+<ul>
+${u.objetivos.map((o,i)=>`
+<li class="${o.done?'done':''}">
+${o.text}
+<button onclick="toggleObjetivo('${u.name}',${i})">✔</button>
+</li>
+`).join("")}
+</ul>
 
-  </div>`;
+</div>
+`;
+
+}).join("")}
+
+<input id="newItem" placeholder="Nuevo objetivo">
+<button onclick="addItem('objetivos')">Añadir</button>
+
+</div>
+`;
+return;
 }
 
-function addItem(section){
-  const text = document.getElementById("newItem").value;
-  const file = document.getElementById("imgInput")?.files[0];
+/* OTRAS SECCIONES */
+content.innerHTML = `
+<button class="back" onclick="goBack()">⬅</button>
 
-  if(!text) return;
+<div class="card">
 
-  if(section==="objetivos"){
-    data.users[user.name].objetivos.push({text,done:false});
-    saveData();
-    showSection(section);
-    return;
-  }
+<input id="newItem" placeholder="Escribe algo">
+<input type="file" id="imgInput" accept="image/*">
+<button onclick="addItem('${section}')">Añadir</button>
 
-  if(file){
-    const reader = new FileReader();
-    reader.onload = e=>{
-      data[section].push({text,user:user.name,img:e.target.result});
-      saveData();
-      showSection(section);
-    };
-    reader.readAsDataURL(file);
-  }else{
-    data[section].push({text,user:user.name});
-    saveData();
-    showSection(section);
-  }
+<ul>
+
+${data[section].map((item,i)=>`
+<li>
+
+<img class="small-photo"
+src="${data.users[item.user]?.photo || ''}">
+
+<b>${item.user}</b><br>
+${item.text}
+
+${item.img ? `<br><img class="post-img" src="${item.img}">` : ''}
+
+<br><button onclick="removeItem('${section}',${i})">❌</button>
+
+</li>
+`).join("")}
+
+</ul>
+
+</div>
+`;
 }
 
-function toggleObjetivo(name,i){
-  let obj=data.users[name].objetivos[i];
-  obj.done=!obj.done;
-  saveData();
-  showSection("objetivos");
-}
+/* AÑADIR ITEMS */
+async function addItem(section){
 
-function removeItem(section,i){
-  data[section].splice(i,1);
-  saveData();
+const text = newItem.value.trim();
+const file = document.getElementById("imgInput")?.files[0];
+
+if(!text) return;
+
+if(section==="objetivos"){
+  data.users[user.name].objetivos.push({
+    text:text,
+    done:false
+  });
+
+  await saveData();
   showSection(section);
+  return;
+}
+
+let img = null;
+
+if(file){
+  img = await compressImage(file,600,0.88);
+}
+
+data[section].push({
+  text:text,
+  user:user.name,
+  img:img
+});
+
+await saveData();
+showSection(section);
+}
+
+/* OBJETIVOS */
+function toggleObjetivo(name,i){
+data.users[name].objetivos[i].done =
+!data.users[name].objetivos[i].done;
+
+saveData();
+showSection("objetivos");
+}
+
+/* BORRAR */
+function removeItem(section,i){
+data[section].splice(i,1);
+saveData();
+showSection(section);
 }
 
 function goBack(){
-  content.innerHTML="";
-  mainMenu.style.display="grid";
+content.innerHTML="";
+mainMenu.style.display="grid";
 }
 
 /* AUTO LOGIN */
 document.addEventListener("DOMContentLoaded",()=>{
-  const saved=localStorage.getItem("user");
-  if(saved){
-    user=JSON.parse(saved);
-    startApp();
-  }
+
+const saved = localStorage.getItem("user");
+
+if(saved){
+  user = JSON.parse(saved);
+  startApp();
+}
+
 });
 </script>
 
