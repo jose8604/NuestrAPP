@@ -106,7 +106,7 @@ li{
   display:flex;
   align-items:center;
   gap:10px;
-  margin-top:15px;
+  margin-bottom:10px;
 }
 .progress{
   width:72px;
@@ -150,6 +150,30 @@ li{
 }
 .obj-actions button{
   margin-left:6px;
+}
+
+/* NUEVO GRID OBJETIVOS */
+.users-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:14px;
+  margin-top:15px;
+}
+.user-card{
+  background:#fffdf4;
+  border-radius:16px;
+  padding:12px;
+  text-align:left;
+}
+.user-card ul{
+  padding:0;
+  margin:0;
+}
+
+@media(max-width:700px){
+  .users-grid{
+    grid-template-columns:1fr 1fr;
+  }
 }
 </style>
 </head>
@@ -387,6 +411,8 @@ content.innerHTML = `
 <button class="back" onclick="goBack()">⬅</button>
 <div class="card" data-section="objetivos">
 
+<div class="users-grid">
+
 ${Object.values(data.users).map(u=>{
 
 const total = u.objetivos.length;
@@ -394,14 +420,14 @@ const done = u.objetivos.filter(x=>x.done).length;
 const percent = total ? (done/total)*100 : 0;
 
 return `
-<div>
+<div class="user-card">
 
 <div class="user-header">
 <div class="progress" style="--progress:${percent}%">
 <img src="${u.photo || ''}">
 </div>
 
-<div style="text-align:left">
+<div>
 <b>${u.name}</b><br>
 <small>${Math.round(percent)}% completado</small>
 </div>
@@ -425,6 +451,8 @@ ${o.text}
 `;
 
 }).join("")}
+
+</div>
 
 <input id="newItem" placeholder="Nuevo objetivo">
 <button onclick="addItem('objetivos')">Añadir</button>
@@ -510,7 +538,6 @@ saveData();
 showSection("objetivos");
 }
 
-/* NUEVO: BORRAR OBJETIVO */
 function removeObjetivo(name,i){
 data.users[name].objetivos.splice(i,1);
 saveData();
