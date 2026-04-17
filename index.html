@@ -92,7 +92,7 @@ button{
 li{
   background:#fff9db;
   margin:10px 0;
-  padding:12px;
+  padding:10px;
   border-radius:12px;
   list-style:none;
   text-align:left;
@@ -132,14 +132,13 @@ li{
   height:32px;
   border-radius:50%;
   object-fit:cover;
+  vertical-align:middle;
   margin-right:8px;
 }
 .post-img{
-  width:150px;
-  height:150px;
-  object-fit:cover;
-  border-radius:14px;
-  flex-shrink:0;
+  width:120px;
+  border-radius:12px;
+  margin-top:8px;
 }
 .auth-title{
   font-size:22px;
@@ -153,7 +152,7 @@ li{
   margin-left:6px;
 }
 
-/* GRID OBJETIVOS */
+/* NUEVO GRID OBJETIVOS */
 .users-grid{
   display:grid;
   grid-template-columns:1fr 1fr;
@@ -169,47 +168,6 @@ li{
 .user-card ul{
   padding:0;
   margin:0;
-}
-
-/* NUEVO RESTO MENUS */
-.add-bar{
-  display:flex;
-  align-items:center;
-  gap:8px;
-  margin-top:20px;
-  margin-bottom:15px;
-}
-.add-bar input[type="text"]{
-  flex:1;
-  width:auto;
-  margin:0;
-}
-.camera-btn{
-  background:#fff3bf;
-  border:none;
-  width:46px;
-  height:46px;
-  border-radius:12px;
-  font-size:22px;
-  cursor:pointer;
-}
-.hidden-file{
-  display:none;
-}
-
-.post-row{
-  display:flex;
-  gap:12px;
-  align-items:flex-start;
-}
-.post-content{
-  flex:1;
-}
-.post-user{
-  display:flex;
-  align-items:center;
-  margin-bottom:6px;
-  font-weight:bold;
 }
 
 @media(max-width:700px){
@@ -504,44 +462,29 @@ ${o.text}
 return;
 }
 
-/* RESTAURANTES / SITIOS / PLANES */
 content.innerHTML = `
 <button class="back" onclick="goBack()">⬅</button>
 
 <div class="card" data-section="${section}">
 
-<div class="add-bar">
-<input id="newItem" type="text" placeholder="Escribe algo">
-<label class="camera-btn" for="imgInput">📷</label>
-<input class="hidden-file" type="file" id="imgInput" accept="image/*">
+<input id="newItem" placeholder="Escribe algo">
+<input type="file" id="imgInput" accept="image/*">
 <button onclick="addItem('${section}')">Añadir</button>
-</div>
 
 <ul>
 
 ${data[section].map((item,i)=>`
 <li>
 
-<div class="post-row">
-
-${item.img ? `<img class="post-img" src="${item.img}">` : ``}
-
-<div class="post-content">
-
-<div class="post-user">
 <img class="small-photo"
 src="${data.users[item.user]?.photo || ''}">
-${item.user}
-</div>
 
-<div>${item.text}</div>
+<b>${item.user}</b><br>
+${item.text}
 
-<br>
-<button onclick="removeItem('${section}',${i})">❌</button>
+${item.img ? `<br><img class="post-img" src="${item.img}">` : ''}
 
-</div>
-
-</div>
+<br><button onclick="removeItem('${section}',${i})">❌</button>
 
 </li>
 `).join("")}
