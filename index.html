@@ -156,9 +156,7 @@ border-radius:12px;
 margin-top:10px;
 display:block;
 }
-.obj-actions{
-float:right;
-}
+.obj-actions{float:right;}
 .users-grid{
 display:grid;
 grid-template-columns:1fr 1fr;
@@ -172,10 +170,7 @@ padding:12px;
 text-align:left;
 min-width:0;
 }
-.user-card ul{
-padding:0;
-margin:0;
-}
+.user-card ul{padding:0;margin:0;}
 .rest-wrap{
 display:grid;
 grid-template-columns:1fr 1fr;
@@ -342,7 +337,8 @@ const canvas=document.createElement("canvas");
 let w=img.width,h=img.height;
 if(w>h && w>size){h*=size/w;w=size;}
 if(h>=w && h>size){w*=size/h;h=size;}
-canvas.width=w;canvas.height=h;
+canvas.width=w;
+canvas.height=h;
 canvas.getContext("2d").drawImage(img,0,0,w,h);
 resolve(canvas.toDataURL("image/jpeg",quality));
 };
@@ -412,15 +408,8 @@ function showSection(section){
 closeMenu();
 mainMenu.style.display="none";
 
-if(section==="objetivos"){
-renderObjetivos();
-return;
-}
-
-if(section==="restaurantes"){
-renderRestaurantes();
-return;
-}
+if(section==="objetivos"){renderObjetivos();return;}
+if(section==="restaurantes"){renderRestaurantes();return;}
 
 content.innerHTML=`
 <button class="back" onclick="goBack()">⬅</button>
@@ -443,23 +432,18 @@ function renderObjetivos(){
 content.innerHTML=`
 <button class="back" onclick="goBack()">⬅</button>
 <div class="card">
-
 <div class="users-grid">
-
 ${Object.values(data.users).map(u=>{
-
 const total=u.objetivos.length;
 const done=u.objetivos.filter(x=>x.done).length;
 const percent=total?(done/total)*100:0;
 
 return `
 <div class="user-card">
-
 <div class="user-header">
 <div class="progress" style="--progress:${percent}%">
 <img src="${u.photo||''}">
 </div>
-
 <div>
 <b>${u.name}</b><br>
 <small>${Math.round(percent)}% completado</small>
@@ -477,22 +461,21 @@ ${o.text}
 </li>
 `).join("")}
 </ul>
-
-</div>
-`;
-
+</div>`;
 }).join("")}
-
 </div>
 
 <input id="newItem" placeholder="Nuevo objetivo">
 <button onclick="addItem('objetivos')">Añadir</button>
-
 </div>`;
 }
 
-function renderRestaurantes(){
+function mediaValoraciones(arr){
+if(!arr || !arr.length) return 0;
+return (arr.reduce((a,b)=>a+b.stars,0)/arr.length).toFixed(1);
+}
 
+function renderRestaurantes(){
 const pendientes=data.restaurantes.filter(x=>!x.done);
 const hechos=data.restaurantes.filter(x=>x.done);
 
@@ -510,7 +493,6 @@ content.innerHTML=`
 <div class="rest-col">
 <b>Pendientes</b>
 <div style="margin-top:10px">
-
 ${pendientes.map(item=>`
 <div class="rest-item">
 <div class="rest-line">
@@ -525,28 +507,29 @@ ${pendientes.map(item=>`
 </div>
 </div>
 `).join("")}
-
 </div>
 </div>
 
 <div class="rest-col">
 <b>Valorados</b>
 <div style="margin-top:10px">
-
 ${hechos.map(item=>`
 <div class="rest-item">
 <div class="rest-line">
 <span onclick="openRestaurantView(${data.restaurantes.indexOf(item)})" style="cursor:pointer;font-weight:bold">${item.nombre}</span>
 
 <div class="rest-actions">
-<button class="icon-btn" onclick="openEditRestaurant(${data.restaurantes.indexOf(item)})">✏️</button>
+<button class="icon-btn" onclick="openEditRestaurant(${data.restaurantes.indexOf(item)},true)">✏️</button>
+<button class="icon-btn" onclick="openVoteRestaurant(${data.restaurantes.indexOf(item)})">⭐</button>
 <button class="icon-btn" onclick="removeItem('restaurantes',${data.restaurantes.indexOf(item)})">❌</button>
 </div>
 </div>
-⭐ ${item.stars||0}/5 · 💰 ${item.precio||'-'}
+
+⭐ ${mediaValoraciones(item.valoraciones)}/5
+(${item.valoraciones?.length||0} votos)
+· 💰 ${item.precio||'-'}
 </div>
 `).join("")}
-
 </div>
 </div>
 
@@ -561,8 +544,8 @@ content.insertAdjacentHTML("beforeend",`
 <h3>Añadir restaurante</h3>
 <input id="rNombre" placeholder="Nombre">
 <input id="rDireccion" placeholder="Dirección">
-<textarea id="rDesc" placeholder="Descripción / tipo de sitio"></textarea>
-<input id="rPlatos" placeholder="Platos que interesan">
+<textarea id="rDesc" placeholder="Descripción"></textarea>
+<input id="rPlatos" placeholder="Platos">
 <input type="file" id="rFotos" multiple accept="image/*">
 <button onclick="saveRestaurant()">Guardar</button>
 <button onclick="closeModal()">Cancelar</button>
@@ -571,16 +554,13 @@ content.insertAdjacentHTML("beforeend",`
 }
 
 async function saveRestaurant(){
-const nombre=rNombre.value.trim();
-if(!nombre)return;
-
 let fotos=[];
 for(let f of rFotos.files){
 fotos.push(await compressImage(f,600,.88));
 }
 
 data.restaurantes.push({
-nombre,
+nombre:rNombre.value.trim(),
 direccion:rDireccion.value.trim(),
 descripcion:rDesc.value.trim(),
 platos:rPlatos.value.trim(),
@@ -595,28 +575,81 @@ renderRestaurantes();
 closeModal();
 }
 
-function openEditRestaurant(i){
+function openEditRestaurant(i,valorado=false){
 const r=data.restaurantes[i];
 
 content.insertAdjacentHTML("beforeend",`
 <div class="modal" id="modalEdit">
 <div class="modal-box">
 <h3>Editar restaurante</h3>
+
 <input id="eNombre" value="${r.nombre||''}">
 <input id="eDireccion" value="${r.direccion||''}">
 <textarea id="eDesc">${r.descripcion||''}</textarea>
 <input id="ePlatos" value="${r.platos||''}">
-<button onclick="saveEditRestaurant(${i})">Guardar</button>
+
+${valorado?`
+<hr>
+<h4>Editar valoración</h4>
+<input id="ePrecio" value="${r.precio||''}" placeholder="Precio">
+<input id="eStars" type="number" min="1" max="5" value="${r.stars||0}" placeholder="Valoración base">
+`:''}
+
+<button onclick="saveEditRestaurant(${i},${valorado})">Guardar</button>
 <button onclick="closeModal()">Cancelar</button>
 </div>
 </div>`);
 }
 
-async function saveEditRestaurant(i){
-data.restaurantes[i].nombre=eNombre.value.trim();
-data.restaurantes[i].direccion=eDireccion.value.trim();
-data.restaurantes[i].descripcion=eDesc.value.trim();
-data.restaurantes[i].platos=ePlatos.value.trim();
+async function saveEditRestaurant(i,valorado){
+let r=data.restaurantes[i];
+
+r.nombre=eNombre.value.trim();
+r.direccion=eDireccion.value.trim();
+r.descripcion=eDesc.value.trim();
+r.platos=ePlatos.value.trim();
+
+if(valorado){
+r.precio=ePrecio.value.trim();
+r.stars=parseInt(eStars.value)||0;
+}
+
+await saveData();
+renderRestaurantes();
+closeModal();
+}
+
+function openVoteRestaurant(i){
+content.insertAdjacentHTML("beforeend",`
+<div class="modal" id="modalVote">
+<div class="modal-box">
+<h3>Tu valoración</h3>
+
+<div>
+${[1,2,3,4,5].map(n=>`<span class="star" onclick="setStars(${n})">⭐</span>`).join("")}
+</div>
+
+<button onclick="saveUserVote(${i})">Guardar voto</button>
+<button onclick="closeModal()">Cancelar</button>
+</div>
+</div>`);
+selectedStars=0;
+}
+
+async function saveUserVote(i){
+if(selectedStars===0)return;
+
+let arr=data.restaurantes[i].valoraciones||[];
+
+const existe=arr.find(v=>v.user===user.name);
+
+if(existe){
+existe.stars=selectedStars;
+}else{
+arr.push({user:user.name,stars:selectedStars});
+}
+
+data.restaurantes[i].valoraciones=arr;
 
 await saveData();
 renderRestaurantes();
@@ -633,21 +666,7 @@ content.insertAdjacentHTML("beforeend",`
 <p><b>Dirección:</b> ${r.direccion||'-'}</p>
 <p><b>Descripción:</b> ${r.descripcion||'-'}</p>
 <p><b>Platos:</b> ${r.platos||'-'}</p>
-${r.done?`<p>⭐ ${r.stars||0}/5 · 💰 ${r.precio||'-'}</p>`:''}
-<button onclick="openGallery(${i})">🖼️ Galería</button>
-<button onclick="closeModal()">Cerrar</button>
-</div>
-</div>`);
-}
-
-function openGallery(i){
-const r=data.restaurantes[i];
-content.insertAdjacentHTML("beforeend",`
-<div class="modal" id="modalGallery">
-<div class="modal-box">
-<h3>Galería</h3>
-${(r.fotos||[]).map(f=>`<img class="post-img" src="${f}">`).join("")}
-${(r.reviewFotos||[]).map(f=>`<img class="post-img" src="${f}">`).join("")}
+${r.done?`<p>⭐ ${mediaValoraciones(r.valoraciones)}/5 · 💰 ${r.precio||'-'}</p>`:''}
 <button onclick="closeModal()">Cerrar</button>
 </div>
 </div>`);
@@ -686,16 +705,20 @@ for(let f of rateFotos.files){
 fotos.push(await compressImage(f,600,.88));
 }
 
-data.restaurantes[i].done=true;
-data.restaurantes[i].stars=selectedStars;
-data.restaurantes[i].precio=rPrecio.value.trim();
-data.restaurantes[i].reviewFotos=fotos;
+let r=data.restaurantes[i];
+r.done=true;
+r.stars=selectedStars;
+r.precio=rPrecio.value.trim();
+r.reviewFotos=fotos;
 
-if(!data.restaurantes[i].valoraciones)data.restaurantes[i].valoraciones=[];
-data.restaurantes[i].valoraciones.push({
-user:user.name,
-stars:selectedStars
-});
+if(!r.valoraciones)r.valoraciones=[];
+
+const existe=r.valoraciones.find(v=>v.user===user.name);
+if(existe){
+existe.stars=selectedStars;
+}else{
+r.valoraciones.push({user:user.name,stars:selectedStars});
+}
 
 await saveData();
 renderRestaurantes();
@@ -703,11 +726,9 @@ closeModal();
 }
 
 function closeModal(){
-document.getElementById("modalAdd")?.remove();
-document.getElementById("modalEdit")?.remove();
-document.getElementById("modalRate")?.remove();
-document.getElementById("modalView")?.remove();
-document.getElementById("modalGallery")?.remove();
+["modalAdd","modalEdit","modalRate","modalView","modalVote"].forEach(id=>{
+document.getElementById(id)?.remove();
+});
 }
 
 async function addItem(section){
@@ -715,20 +736,13 @@ const text=newItem.value.trim();
 if(!text)return;
 
 if(section==="objetivos"){
-data.users[user.name].objetivos.push({
-text,
-done:false
-});
+data.users[user.name].objetivos.push({text,done:false});
 await saveData();
 renderObjetivos();
 return;
 }
 
-data[section].push({
-text,
-user:user.name
-});
-
+data[section].push({text,user:user.name});
 await saveData();
 showSection(section);
 }
@@ -749,11 +763,8 @@ function removeItem(section,i){
 data[section].splice(i,1);
 saveData();
 
-if(section==="restaurantes"){
-renderRestaurantes();
-}else{
-showSection(section);
-}
+if(section==="restaurantes") renderRestaurantes();
+else showSection(section);
 }
 
 document.addEventListener("DOMContentLoaded",()=>{
