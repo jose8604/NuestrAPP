@@ -2,23 +2,43 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Nuestra App</title>
+
+<!-- ICONO APP -->
+<link rel="icon" type="image/png" href="icono.png">
+<link rel="apple-touch-icon" href="icono.png">
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#ffe066">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Nuestra App">
+
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
 
 <style>
+*{
+  box-sizing:border-box;
+}
+
 body{
   font-family:'Poppins',sans-serif;
   margin:0;
   background:#fdf6e3;
   text-align:center;
+  overflow-x:hidden;
 }
+
 header{
   background:#ffe066;
   padding:15px;
   font-weight:bold;
   position:relative;
+  font-size:18px;
 }
+
 .menu-btn{
   position:absolute;
   left:10px;
@@ -26,6 +46,7 @@ header{
   font-size:22px;
   cursor:pointer;
 }
+
 .dropdown{
   display:none;
   position:absolute;
@@ -35,13 +56,16 @@ header{
   border-radius:16px;
   padding:18px;
   width:220px;
+  max-width:90vw;
   box-shadow:0 6px 16px rgba(0,0,0,.15);
   z-index:99;
 }
+
 .profile-box{
   text-align:center;
   margin-bottom:15px;
 }
+
 .profile-photo{
   width:80px;
   height:80px;
@@ -49,39 +73,49 @@ header{
   object-fit:cover;
   border:4px solid #ffe066;
 }
+
 .change-photo-btn{
   margin-top:10px;
   font-size:13px;
   width:100%;
 }
+
 .menu{
   display:grid;
   grid-template-columns:1fr 1fr;
   gap:15px;
   padding:20px;
 }
+
 .menu button{
   background:#fff3bf;
   border:none;
   border-radius:20px;
   padding:22px;
   font-size:16px;
+  width:100%;
 }
+
 .card{
   background:white;
   margin:15px;
   padding:20px;
   border-radius:20px;
   position:relative;
+  max-width:100%;
+  overflow:hidden;
 }
+
 input{
-  margin:8px;
+  margin:8px 0;
   padding:12px;
   border-radius:12px;
   border:1px solid #ddd;
-  width:80%;
+  width:100%;
   box-sizing:border-box;
+  font-size:15px;
 }
+
 button{
   background:#ffe066;
   border:none;
@@ -89,25 +123,29 @@ button{
   padding:10px 14px;
   cursor:pointer;
 }
+
 li{
   background:#fff9db;
   margin:10px 0;
-  padding:10px;
+  padding:12px;
   border-radius:12px;
   list-style:none;
   text-align:left;
 }
+
 .back{
   position:absolute;
   left:10px;
   top:10px;
 }
+
 .user-header{
   display:flex;
   align-items:center;
   gap:10px;
   margin-bottom:10px;
 }
+
 .progress{
   width:72px;
   height:72px;
@@ -116,17 +154,21 @@ li{
   display:flex;
   align-items:center;
   justify-content:center;
+  flex-shrink:0;
 }
+
 .progress img{
   width:56px;
   height:56px;
   border-radius:50%;
   object-fit:cover;
 }
+
 .done{
   text-decoration:line-through;
   opacity:.6;
 }
+
 .small-photo{
   width:32px;
   height:32px;
@@ -135,44 +177,145 @@ li{
   vertical-align:middle;
   margin-right:8px;
 }
+
 .post-img{
-  width:120px;
+  width:100%;
+  max-width:220px;
   border-radius:12px;
-  margin-top:8px;
+  margin-top:10px;
+  display:block;
 }
+
 .auth-title{
   font-size:22px;
   margin-top:25px;
   font-weight:bold;
 }
+
 .obj-actions{
   float:right;
 }
+
 .obj-actions button{
   margin-left:6px;
 }
 
-/* NUEVO GRID OBJETIVOS */
+/* OBJETIVOS GRID */
 .users-grid{
   display:grid;
   grid-template-columns:1fr 1fr;
   gap:14px;
   margin-top:15px;
 }
+
 .user-card{
   background:#fffdf4;
   border-radius:16px;
   padding:12px;
   text-align:left;
+  min-width:0;
 }
+
 .user-card ul{
   padding:0;
   margin:0;
 }
 
+/* NUEVO FORM PUBLICACIONES */
+.add-row{
+  display:flex;
+  gap:8px;
+  align-items:center;
+  margin-top:10px;
+  flex-wrap:wrap;
+}
+
+.add-row input[type="text"]{
+  flex:1;
+  margin:0;
+}
+
+.camera-btn{
+  background:#fff3bf;
+  width:48px;
+  height:48px;
+  border-radius:14px;
+  font-size:22px;
+}
+
+.hidden-file{
+  display:none;
+}
+
+.post-head{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin-bottom:8px;
+}
+
+.post-content{
+  margin-top:8px;
+  line-height:1.4;
+}
+
+/* MOVIL */
 @media(max-width:700px){
+
+  body{
+    font-size:15px;
+  }
+
+  .menu{
+    grid-template-columns:1fr;
+    padding:15px;
+  }
+
   .users-grid{
-    grid-template-columns:1fr 1fr;
+    grid-template-columns:1fr;
+  }
+
+  .card{
+    margin:10px;
+    padding:16px;
+  }
+
+  .dropdown{
+    left:5%;
+    width:90%;
+  }
+
+  .back{
+    position:relative;
+    display:block;
+    margin-bottom:12px;
+    left:auto;
+    top:auto;
+  }
+
+  .obj-actions{
+    float:none;
+    display:block;
+    margin-top:8px;
+  }
+
+  .obj-actions button{
+    margin-left:0;
+    margin-right:6px;
+  }
+
+  .post-img{
+    max-width:100%;
+  }
+
+  .add-row{
+    flex-direction:column;
+    align-items:stretch;
+  }
+
+  .camera-btn,
+  .add-row button{
+    width:100%;
   }
 }
 </style>
@@ -467,22 +610,27 @@ content.innerHTML = `
 
 <div class="card" data-section="${section}">
 
+<div class="add-row">
 <input id="newItem" placeholder="Escribe algo">
-<input type="file" id="imgInput" accept="image/*">
+<label class="camera-btn" for="imgInput">📷</label>
+<input type="file" id="imgInput" class="hidden-file" accept="image/*">
 <button onclick="addItem('${section}')">Añadir</button>
+</div>
 
 <ul>
 
 ${data[section].map((item,i)=>`
 <li>
 
+<div class="post-head">
 <img class="small-photo"
 src="${data.users[item.user]?.photo || ''}">
+<b>${item.user}</b>
+</div>
 
-<b>${item.user}</b><br>
-${item.text}
+${item.img ? `<img class="post-img" src="${item.img}">` : ''}
 
-${item.img ? `<br><img class="post-img" src="${item.img}">` : ''}
+<div class="post-content">${item.text}</div>
 
 <br><button onclick="removeItem('${section}',${i})">❌</button>
 
