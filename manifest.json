@@ -1,1 +1,15 @@
-
+{
+  "name": "Nuestra App",
+  "short_name": "Nuestra App",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#fdf6e3",
+  "theme_color": "#ffe066",
+  "icons": [
+    {
+      "src": "icono.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
