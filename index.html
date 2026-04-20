@@ -80,9 +80,10 @@ header{
   width:100%;
 }
 
+/* MENU PRINCIPAL */
 .menu{
   display:grid;
-  grid-template-columns:1fr 1fr;
+  grid-template-columns:repeat(2,1fr);
   gap:15px;
   padding:20px;
 }
@@ -90,10 +91,12 @@ header{
 .menu button{
   background:#fff3bf;
   border:none;
-  border-radius:20px;
-  padding:22px;
-  font-size:16px;
+  border-radius:22px;
+  aspect-ratio:1/1;
   width:100%;
+  font-size:16px;
+  font-weight:600;
+  padding:10px;
 }
 
 .card{
@@ -135,8 +138,9 @@ li{
 
 .back{
   position:absolute;
-  left:10px;
-  top:10px;
+  left:15px;
+  top:15px;
+  z-index:5;
 }
 
 .user-header{
@@ -221,7 +225,7 @@ li{
   margin:0;
 }
 
-/* NUEVO FORM PUBLICACIONES */
+/* PUBLICACIONES */
 .add-row{
   display:flex;
   gap:8px;
@@ -241,6 +245,10 @@ li{
   height:48px;
   border-radius:14px;
   font-size:22px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
 }
 
 .hidden-file{
@@ -267,17 +275,24 @@ li{
   }
 
   .menu{
-    grid-template-columns:1fr;
+    grid-template-columns:repeat(2,1fr);
+    gap:12px;
     padding:15px;
   }
 
+  .menu button{
+    font-size:15px;
+  }
+
+  /* OBJETIVOS IGUAL QUE ORDENADOR */
   .users-grid{
-    grid-template-columns:1fr;
+    grid-template-columns:1fr 1fr;
   }
 
   .card{
     margin:10px;
-    padding:16px;
+    padding:18px;
+    padding-top:52px;
   }
 
   .dropdown{
@@ -285,12 +300,12 @@ li{
     width:90%;
   }
 
+  /* BOTON ATRAS ARRIBA */
   .back{
-    position:relative;
-    display:block;
-    margin-bottom:12px;
-    left:auto;
-    top:auto;
+    position:absolute;
+    left:12px;
+    top:12px;
+    margin:0;
   }
 
   .obj-actions{
