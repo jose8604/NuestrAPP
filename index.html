@@ -17,7 +17,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
 
 <style>
-/* TODO TU CSS ORIGINAL SIN TOCAR */
 *{box-sizing:border-box;}
 body{
 font-family:'Poppins',sans-serif;
@@ -244,31 +243,538 @@ border-radius:50%;
 padding:0;
 font-size:18px;
 }
+@media(max-width:700px){
+.menu{grid-template-columns:1fr;padding:15px;}
+.users-grid{grid-template-columns:1fr;}
+.rest-wrap{grid-template-columns:1fr;}
+.card{margin:10px;padding:16px;}
+}
 </style>
 </head>
 
 <body>
 
-<!-- TODO TU HTML ORIGINAL SIN TOCAR -->
-<!-- (lo dejo igual, no lo modifico) -->
+<header>
+<div class="menu-btn" onclick="toggleMenu()">☰</div>
+💛 Nuestra App 💛
+
+<div id="dropdown" class="dropdown">
+<div class="profile-box">
+<img id="menuPhoto" class="profile-photo" src="">
+<div id="menuUser" style="margin-top:8px;font-weight:bold;"></div>
+
+<input type="file" id="changePhotoInput" accept="image/*" style="display:none">
+<button class="change-photo-btn" onclick="changePhotoInput.click()">📷 Cambiar foto</button>
+</div>
+
+<button style="width:100%;" onclick="logout()">Cerrar sesión 🚪</button>
+</div>
+</header>
+
+<div id="auth">
+<h2>Iniciar sesión</h2>
+<input id="nameInput" placeholder="Usuario">
+<input id="passInput" type="password" placeholder="Contraseña">
+<input id="photoInput" type="file" accept="image/*">
+<button onclick="login()">Entrar</button>
+<button onclick="register()">Crear cuenta</button>
+</div>
+
+<div id="app" style="display:none">
+<div id="mainMenu" class="menu">
+<button onclick="showSection('objetivos')">🎯 Objetivos</button>
+<button onclick="showSection('planes')">📅 Planes</button>
+<button onclick="showSection('restaurantes')">🍽️ Restaurantes</button>
+<button onclick="showSection('sitios')">📍 Sitios</button>
+</div>
+<div id="content"></div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
 <script>
-// TODO TU JS ORIGINAL SIN TOCAR
-</script>
+const firebaseConfig={
+apiKey:"AIzaSy...",
+authDomain:"nuestrapp-3329a.firebaseapp.com",
+projectId:"nuestrapp-3329a",
+storageBucket:"nuestrapp-3329a.firebasestorage.app",
+messagingSenderId:"11964303180",
+appId:"1:11964303180:web:28412e809348d20d6af1e9"
+};
 
-<script>
-// 🔥 NUEVO (AÑADIDO SIN TOCAR NADA EXISTENTE)
-document.getElementById("changePhotoInput").addEventListener("change", async function(e){
-const file = e.target.files[0];
-if(!file || !user) return;
+firebase.initializeApp(firebaseConfig);
+const db=firebase.firestore();
 
-const photo = await compressImage(file);
+let user=null;
+let selectedStars=0;
 
-data.users[user.name].photo = photo;
+let data={
+users:{},
+planes:[],
+restaurantes:[],
+sitios:[]
+};
 
+function toggleMenu(){
+dropdown.style.display=dropdown.style.display==="block"?"none":"block";
+if(user && data.users[user.name]){
+menuUser.innerText=user.name;
+menuPhoto.src=data.users[user.name].photo||"";
+}
+}
+
+function closeMenu(){dropdown.style.display="none";}
+function logout(){localStorage.removeItem("user");location.reload();}
+
+function compressImage(file,size=320,quality=.85){
+return new Promise(resolve=>{
+const reader=new FileReader();
+reader.onload=e=>{
+const img=new Image();
+img.onload=()=>{
+const canvas=document.createElement("canvas");
+let w=img.width,h=img.height;
+if(w>h && w>size){h*=size/w;w=size;}
+if(h>=w && h>size){w*=size/h;h=size;}
+canvas.width=w;
+canvas.height=h;
+canvas.getContext("2d").drawImage(img,0,0,w,h);
+resolve(canvas.toDataURL("image/jpeg",quality));
+};
+img.src=e.target.result;
+};
+reader.readAsDataURL(file);
+});
+}
+
+function loadData(){
+db.collection("app").doc("data").onSnapshot(doc=>{
+if(doc.exists){
+data=doc.data();
+if(!data.restaurantes)data.restaurantes=[];
+}
+});
+}
+
+async function saveData(){
+await db.collection("app").doc("data").set(data);
+}
+
+async function register(){
+const name=nameInput.value.trim();
+const pass=passInput.value.trim();
+const file=photoInput.files[0];
+if(!name||!pass)return;
+
+let photo="";
+if(file)photo=await compressImage(file);
+
+data.users[name]={name,password:pass,photo,objetivos:[]};
 await saveData();
 
-menuPhoto.src = photo;
+user={name};
+localStorage.setItem("user",JSON.stringify(user));
+startApp();
+}
+
+async function login(){
+const name=nameInput.value.trim();
+const pass=passInput.value.trim();
+
+const doc=await db.collection("app").doc("data").get();
+if(doc.exists)data=doc.data();
+
+if(!data.users[name]) return alert("No existe");
+if(data.users[name].password!==pass) return alert("Contraseña incorrecta");
+
+user={name};
+localStorage.setItem("user",JSON.stringify(user));
+startApp();
+}
+
+function startApp(){
+auth.style.display="none";
+app.style.display="block";
+loadData();
+}
+
+function goBack(){
+content.innerHTML="";
+mainMenu.style.display="grid";
+}
+
+function showSection(section){
+closeMenu();
+mainMenu.style.display="none";
+
+if(section==="objetivos"){renderObjetivos();return;}
+if(section==="restaurantes"){renderRestaurantes();return;}
+
+content.innerHTML=`
+<button class="back" onclick="goBack()">⬅</button>
+<div class="card">
+<input id="newItem" placeholder="Escribe algo">
+<button onclick="addItem('${section}')">Añadir</button>
+<ul>
+${data[section].map((item,i)=>`
+<li>
+<b>${item.user}</b><br>
+${item.text}
+<br><button onclick="removeItem('${section}',${i})">❌</button>
+</li>
+`).join("")}
+</ul>
+</div>`;
+}
+
+function renderObjetivos(){
+content.innerHTML=`
+<button class="back" onclick="goBack()">⬅</button>
+<div class="card">
+<div class="users-grid">
+${Object.values(data.users).map(u=>{
+const total=u.objetivos.length;
+const done=u.objetivos.filter(x=>x.done).length;
+const percent=total?(done/total)*100:0;
+
+return `
+<div class="user-card">
+<div class="user-header">
+<div class="progress" style="--progress:${percent}%">
+<img src="${u.photo||''}">
+</div>
+<div>
+<b>${u.name}</b><br>
+<small>${Math.round(percent)}% completado</small>
+</div>
+</div>
+
+<ul>
+${u.objetivos.map((o,i)=>`
+<li class="${o.done?'done':''}">
+${o.text}
+<span class="obj-actions">
+<button onclick="toggleObjetivo('${u.name}',${i})">✔</button>
+<button onclick="removeObjetivo('${u.name}',${i})">❌</button>
+</span>
+</li>
+`).join("")}
+</ul>
+</div>`;
+}).join("")}
+</div>
+
+<input id="newItem" placeholder="Nuevo objetivo">
+<button onclick="addItem('objetivos')">Añadir</button>
+</div>`;
+}
+
+function mediaValoraciones(arr){
+if(!arr || !arr.length) return 0;
+return (arr.reduce((a,b)=>a+b.stars,0)/arr.length).toFixed(1);
+}
+
+function renderRestaurantes(){
+const pendientes=data.restaurantes.filter(x=>!x.done);
+const hechos=data.restaurantes.filter(x=>x.done);
+
+content.innerHTML=`
+<button class="back" onclick="goBack()">⬅</button>
+
+<div class="card">
+<div class="rest-top">
+<h3 style="margin:0">🍽️ Restaurantes</h3>
+<button class="plus-btn" onclick="openAddRestaurant()">+</button>
+</div>
+
+<div class="rest-wrap">
+
+<div class="rest-col">
+<b>Pendientes</b>
+<div style="margin-top:10px">
+${pendientes.map(item=>`
+<div class="rest-item">
+<div class="rest-line">
+<img class="small-photo" src="${data.users[item.user]?.photo||''}">
+<span onclick="openRestaurantView(${data.restaurantes.indexOf(item)})" style="cursor:pointer;font-weight:bold">${item.nombre}</span>
+
+<div class="rest-actions">
+<button class="icon-btn" onclick="openEditRestaurant(${data.restaurantes.indexOf(item)})">✏️</button>
+<button class="icon-btn" onclick="removeItem('restaurantes',${data.restaurantes.indexOf(item)})">❌</button>
+<button class="icon-btn" onclick="openRateRestaurant(${data.restaurantes.indexOf(item)})">✔</button>
+</div>
+</div>
+</div>
+`).join("")}
+</div>
+</div>
+
+<div class="rest-col">
+<b>Valorados</b>
+<div style="margin-top:10px">
+${hechos.map(item=>`
+<div class="rest-item">
+<div class="rest-line">
+<span onclick="openRestaurantView(${data.restaurantes.indexOf(item)})" style="cursor:pointer;font-weight:bold">${item.nombre}</span>
+
+<div class="rest-actions">
+<button class="icon-btn" onclick="openEditRestaurant(${data.restaurantes.indexOf(item)},true)">✏️</button>
+<button class="icon-btn" onclick="openVoteRestaurant(${data.restaurantes.indexOf(item)})">⭐</button>
+<button class="icon-btn" onclick="removeItem('restaurantes',${data.restaurantes.indexOf(item)})">❌</button>
+</div>
+</div>
+
+⭐ ${mediaValoraciones(item.valoraciones)}/5
+(${item.valoraciones?.length||0} votos)
+· 💰 ${item.precio||'-'}
+</div>
+`).join("")}
+</div>
+</div>
+
+</div>
+</div>`;
+}
+
+function openAddRestaurant(){
+content.insertAdjacentHTML("beforeend",`
+<div class="modal" id="modalAdd">
+<div class="modal-box">
+<h3>Añadir restaurante</h3>
+<input id="rNombre" placeholder="Nombre">
+<input id="rDireccion" placeholder="Dirección">
+<textarea id="rDesc" placeholder="Descripción"></textarea>
+<input id="rPlatos" placeholder="Platos">
+<input type="file" id="rFotos" multiple accept="image/*">
+<button onclick="saveRestaurant()">Guardar</button>
+<button onclick="closeModal()">Cancelar</button>
+</div>
+</div>`);
+}
+
+async function saveRestaurant(){
+let fotos=[];
+for(let f of rFotos.files){
+fotos.push(await compressImage(f,600,.88));
+}
+
+data.restaurantes.push({
+nombre:rNombre.value.trim(),
+direccion:rDireccion.value.trim(),
+descripcion:rDesc.value.trim(),
+platos:rPlatos.value.trim(),
+fotos,
+user:user.name,
+done:false,
+valoraciones:[]
+});
+
+await saveData();
+renderRestaurantes();
+closeModal();
+}
+
+function openEditRestaurant(i,valorado=false){
+const r=data.restaurantes[i];
+
+content.insertAdjacentHTML("beforeend",`
+<div class="modal" id="modalEdit">
+<div class="modal-box">
+<h3>Editar restaurante</h3>
+
+<input id="eNombre" value="${r.nombre||''}">
+<input id="eDireccion" value="${r.direccion||''}">
+<textarea id="eDesc">${r.descripcion||''}</textarea>
+<input id="ePlatos" value="${r.platos||''}">
+
+${valorado?`
+<hr>
+<h4>Editar valoración</h4>
+<input id="ePrecio" value="${r.precio||''}" placeholder="Precio">
+<input id="eStars" type="number" min="1" max="5" value="${r.stars||0}" placeholder="Valoración base">
+`:''}
+
+<button onclick="saveEditRestaurant(${i},${valorado})">Guardar</button>
+<button onclick="closeModal()">Cancelar</button>
+</div>
+</div>`);
+}
+
+async function saveEditRestaurant(i,valorado){
+let r=data.restaurantes[i];
+
+r.nombre=eNombre.value.trim();
+r.direccion=eDireccion.value.trim();
+r.descripcion=eDesc.value.trim();
+r.platos=ePlatos.value.trim();
+
+if(valorado){
+r.precio=ePrecio.value.trim();
+r.stars=parseInt(eStars.value)||0;
+}
+
+await saveData();
+renderRestaurantes();
+closeModal();
+}
+
+function openVoteRestaurant(i){
+content.insertAdjacentHTML("beforeend",`
+<div class="modal" id="modalVote">
+<div class="modal-box">
+<h3>Tu valoración</h3>
+
+<div>
+${[1,2,3,4,5].map(n=>`<span class="star" onclick="setStars(${n})">⭐</span>`).join("")}
+</div>
+
+<button onclick="saveUserVote(${i})">Guardar voto</button>
+<button onclick="closeModal()">Cancelar</button>
+</div>
+</div>`);
+selectedStars=0;
+}
+
+async function saveUserVote(i){
+if(selectedStars===0)return;
+
+let arr=data.restaurantes[i].valoraciones||[];
+
+const existe=arr.find(v=>v.user===user.name);
+
+if(existe){
+existe.stars=selectedStars;
+}else{
+arr.push({user:user.name,stars:selectedStars});
+}
+
+data.restaurantes[i].valoraciones=arr;
+
+await saveData();
+renderRestaurantes();
+closeModal();
+}
+
+function openRestaurantView(i){
+const r=data.restaurantes[i];
+
+content.insertAdjacentHTML("beforeend",`
+<div class="modal" id="modalView">
+<div class="modal-box">
+<h3>${r.nombre}</h3>
+<p><b>Dirección:</b> ${r.direccion||'-'}</p>
+<p><b>Descripción:</b> ${r.descripcion||'-'}</p>
+<p><b>Platos:</b> ${r.platos||'-'}</p>
+${r.done?`<p>⭐ ${mediaValoraciones(r.valoraciones)}/5 · 💰 ${r.precio||'-'}</p>`:''}
+<button onclick="closeModal()">Cerrar</button>
+</div>
+</div>`);
+}
+
+function openRateRestaurant(i){
+content.insertAdjacentHTML("beforeend",`
+<div class="modal" id="modalRate">
+<div class="modal-box">
+<h3>Valorar</h3>
+
+<div>
+${[1,2,3,4,5].map(n=>`<span class="star" onclick="setStars(${n})">⭐</span>`).join("")}
+</div>
+
+<input id="rPrecio" placeholder="Precio aprox.">
+<input type="file" id="rateFotos" multiple accept="image/*">
+
+<button onclick="saveRate(${i})">Guardar</button>
+<button onclick="closeModal()">Cancelar</button>
+</div>
+</div>`);
+selectedStars=0;
+}
+
+function setStars(n){
+selectedStars=n;
+document.querySelectorAll(".star").forEach((s,i)=>{
+s.classList.toggle("active",i<n);
+});
+}
+
+async function saveRate(i){
+let fotos=[];
+for(let f of rateFotos.files){
+fotos.push(await compressImage(f,600,.88));
+}
+
+let r=data.restaurantes[i];
+r.done=true;
+r.stars=selectedStars;
+r.precio=rPrecio.value.trim();
+r.reviewFotos=fotos;
+
+if(!r.valoraciones)r.valoraciones=[];
+
+const existe=r.valoraciones.find(v=>v.user===user.name);
+if(existe){
+existe.stars=selectedStars;
+}else{
+r.valoraciones.push({user:user.name,stars:selectedStars});
+}
+
+await saveData();
+renderRestaurantes();
+closeModal();
+}
+
+function closeModal(){
+["modalAdd","modalEdit","modalRate","modalView","modalVote"].forEach(id=>{
+document.getElementById(id)?.remove();
+});
+}
+
+async function addItem(section){
+const text=newItem.value.trim();
+if(!text)return;
+
+if(section==="objetivos"){
+data.users[user.name].objetivos.push({text,done:false});
+await saveData();
+renderObjetivos();
+return;
+}
+
+data[section].push({text,user:user.name});
+await saveData();
+showSection(section);
+}
+
+function toggleObjetivo(name,i){
+data.users[name].objetivos[i].done=!data.users[name].objetivos[i].done;
+saveData();
+renderObjetivos();
+}
+
+function removeObjetivo(name,i){
+data.users[name].objetivos.splice(i,1);
+saveData();
+renderObjetivos();
+}
+
+function removeItem(section,i){
+data[section].splice(i,1);
+saveData();
+
+if(section==="restaurantes") renderRestaurantes();
+else showSection(section);
+}
+
+document.addEventListener("DOMContentLoaded",()=>{
+loadData();
+
+const saved=localStorage.getItem("user");
+if(saved){
+user=JSON.parse(saved);
+startApp();
+}
 });
 </script>
 
