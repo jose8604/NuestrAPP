@@ -251,9 +251,6 @@ font-size:18px;
 }
 
 /* ===== CALENDARIO ===== */
-.calendar{
-user-select:none;
-}
 .calendar-header{
 display:flex;
 justify-content:space-between;
@@ -274,11 +271,8 @@ opacity:.6;
 background:#fff9db;
 padding:10px 0;
 border-radius:10px;
-font-size:14px;
 }
-.day.empty{
-background:transparent;
-}
+.day.empty{background:transparent;}
 </style>
 </head>
 
@@ -363,8 +357,8 @@ const monthNames=[
 ];
 
 let html=`
-<div class="card calendar" id="calendar">
 <button class="back" onclick="goBack()">⬅</button>
+<div class="card">
 
 <div class="calendar-header">
 <span onclick="changeMonth(-1)" style="cursor:pointer">◀</span>
@@ -394,7 +388,7 @@ html+=`</div></div>`;
 
 content.innerHTML=html;
 
-const cal=document.getElementById("calendar");
+const cal=document.querySelector(".card");
 
 cal.addEventListener("touchstart",e=>{
 touchStartX=e.changedTouches[0].screenX;
@@ -413,6 +407,8 @@ function changeMonth(dir){
 currentDate.setMonth(currentDate.getMonth()+dir);
 renderCalendar();
 }
+
+/* ===== FIN CALENDARIO ===== */
 
 function toggleMenu(){
 dropdown.style.display=dropdown.style.display==="block"?"none":"block";
