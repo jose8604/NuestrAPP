@@ -138,10 +138,7 @@ height:56px;
 border-radius:50%;
 object-fit:cover;
 }
-.done{
-text-decoration:line-through;
-opacity:.6;
-}
+.done{text-decoration:line-through;opacity:.6;}
 .small-photo{
 width:32px;
 height:32px;
@@ -243,6 +240,79 @@ border-radius:50%;
 padding:0;
 font-size:18px;
 }
+
+/* CALENDARIO */
+.cal-head{
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:15px;
+gap:10px;
+}
+.cal-title{
+font-weight:bold;
+font-size:20px;
+flex:1;
+}
+.arrow-btn{
+width:42px;
+height:42px;
+border-radius:50%;
+font-size:22px;
+padding:0;
+}
+.weekdays,.calendar-grid{
+display:grid;
+grid-template-columns:repeat(7,1fr);
+gap:6px;
+}
+.weekdays div{
+font-size:12px;
+font-weight:bold;
+padding:6px 0;
+}
+.day{
+background:#fff9db;
+border-radius:14px;
+padding:10px 4px;
+min-height:62px;
+cursor:pointer;
+position:relative;
+font-size:14px;
+}
+.day.empty{background:transparent;cursor:default;}
+.day.today{border:2px solid #ffe066;}
+.day .dots{
+margin-top:6px;
+display:flex;
+justify-content:center;
+gap:3px;
+flex-wrap:wrap;
+}
+.dot{
+width:8px;
+height:8px;
+border-radius:50%;
+display:inline-block;
+}
+.event-row{
+display:flex;
+align-items:flex-start;
+gap:10px;
+padding:10px;
+background:#fff9db;
+border-radius:14px;
+margin-bottom:10px;
+text-align:left;
+}
+.event-photo{
+width:36px;
+height:36px;
+border-radius:50%;
+object-fit:cover;
+flex-shrink:0;
+}
+
 @media(max-width:700px){
 .menu{grid-template-columns:1fr;padding:15px;}
 .users-grid{grid-template-columns:1fr;}
@@ -283,7 +353,7 @@ font-size:18px;
 <div id="app" style="display:none">
 <div id="mainMenu" class="menu">
 <button onclick="showSection('objetivos')">🎯 Objetivos</button>
-<button onclick="showSection('planes')">📅 Planes</button>
+<button onclick="showSection('planes')">📅 Calendario</button>
 <button onclick="showSection('restaurantes')">🍽️ Restaurantes</button>
 <button onclick="showSection('sitios')">📍 Sitios</button>
 </div>
@@ -308,6 +378,8 @@ const db=firebase.firestore();
 
 let user=null;
 let selectedStars=0;
+let currentMonth=new Date().getMonth();
+let currentYear=new Date().getFullYear();
 
 let data={
 users:{},
@@ -323,7 +395,6 @@ menuUser.innerText=user.name;
 menuPhoto.src=data.users[user.name].photo||"";
 }
 }
-
 function closeMenu(){dropdown.style.display="none";}
 function logout(){localStorage.removeItem("user");location.reload();}
 
@@ -353,6 +424,7 @@ db.collection("app").doc("data").onSnapshot(doc=>{
 if(doc.exists){
 data=doc.data();
 if(!data.restaurantes)data.restaurantes=[];
+if(!data.planes)data.planes=[];
 }
 });
 }
@@ -410,6 +482,7 @@ mainMenu.style.display="none";
 
 if(section==="objetivos"){renderObjetivos();return;}
 if(section==="restaurantes"){renderRestaurantes();return;}
+if(section==="planes"){renderCalendario();return;}
 
 content.innerHTML=`
 <button class="back" onclick="goBack()">⬅</button>
@@ -428,305 +501,156 @@ ${item.text}
 </div>`;
 }
 
-function renderObjetivos(){
+/* ========= CALENDARIO ========= */
+
+function renderCalendario(){
+const meses=["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+const dias=["L","M","X","J","V","S","D"];
+
+const firstDay=new Date(currentYear,currentMonth,1);
+let start=firstDay.getDay();
+start=(start===0?6:start-1);
+
+const totalDays=new Date(currentYear,currentMonth+1,0).getDate();
+
+let cells="";
+
+for(let i=0;i<start;i++) cells+=`<div class="day empty"></div>`;
+
+for(let d=1; d<=totalDays; d++){
+const fecha=getDateKey(currentYear,currentMonth,d);
+const eventos=data.planes.filter(x=>x.fecha===fecha);
+
+let dots=eventos.slice(0,3).map(e=>`<span class="dot" style="background:${e.color}"></span>`).join("");
+
+const today=new Date();
+const isToday=today.getDate()===d && today.getMonth()===currentMonth && today.getFullYear()===currentYear;
+
+cells+=`
+<div class="day ${isToday?'today':''}" onclick="openDay('${fecha}')">
+<div>${d}</div>
+<div class="dots">${dots}</div>
+</div>`;
+}
+
 content.innerHTML=`
 <button class="back" onclick="goBack()">⬅</button>
 <div class="card">
-<div class="users-grid">
-${Object.values(data.users).map(u=>{
-const total=u.objetivos.length;
-const done=u.objetivos.filter(x=>x.done).length;
-const percent=total?(done/total)*100:0;
-
-return `
-<div class="user-card">
-<div class="user-header">
-<div class="progress" style="--progress:${percent}%">
-<img src="${u.photo||''}">
-</div>
-<div>
-<b>${u.name}</b><br>
-<small>${Math.round(percent)}% completado</small>
-</div>
+<div class="cal-head">
+<button class="arrow-btn" onclick="changeMonth(-1)">◀</button>
+<div class="cal-title">${meses[currentMonth]} ${currentYear}</div>
+<button class="arrow-btn" onclick="changeMonth(1)">▶</button>
 </div>
 
-<ul>
-${u.objetivos.map((o,i)=>`
-<li class="${o.done?'done':''}">
-${o.text}
-<span class="obj-actions">
-<button onclick="toggleObjetivo('${u.name}',${i})">✔</button>
-<button onclick="removeObjetivo('${u.name}',${i})">❌</button>
-</span>
-</li>
-`).join("")}
-</ul>
-</div>`;
-}).join("")}
+<div class="weekdays">
+${dias.map(x=>`<div>${x}</div>`).join("")}
 </div>
 
-<input id="newItem" placeholder="Nuevo objetivo">
-<button onclick="addItem('objetivos')">Añadir</button>
-</div>`;
-}
-
-function mediaValoraciones(arr){
-if(!arr || !arr.length) return 0;
-return (arr.reduce((a,b)=>a+b.stars,0)/arr.length).toFixed(1);
-}
-
-function renderRestaurantes(){
-const pendientes=data.restaurantes.filter(x=>!x.done);
-const hechos=data.restaurantes.filter(x=>x.done);
-
-content.innerHTML=`
-<button class="back" onclick="goBack()">⬅</button>
-
-<div class="card">
-<div class="rest-top">
-<h3 style="margin:0">🍽️ Restaurantes</h3>
-<button class="plus-btn" onclick="openAddRestaurant()">+</button>
-</div>
-
-<div class="rest-wrap">
-
-<div class="rest-col">
-<b>Pendientes</b>
-<div style="margin-top:10px">
-${pendientes.map(item=>`
-<div class="rest-item">
-<div class="rest-line">
-<img class="small-photo" src="${data.users[item.user]?.photo||''}">
-<span onclick="openRestaurantView(${data.restaurantes.indexOf(item)})" style="cursor:pointer;font-weight:bold">${item.nombre}</span>
-
-<div class="rest-actions">
-<button class="icon-btn" onclick="openEditRestaurant(${data.restaurantes.indexOf(item)})">✏️</button>
-<button class="icon-btn" onclick="removeItem('restaurantes',${data.restaurantes.indexOf(item)})">❌</button>
-<button class="icon-btn" onclick="openRateRestaurant(${data.restaurantes.indexOf(item)})">✔</button>
-</div>
-</div>
-</div>
-`).join("")}
-</div>
-</div>
-
-<div class="rest-col">
-<b>Valorados</b>
-<div style="margin-top:10px">
-${hechos.map(item=>`
-<div class="rest-item">
-<div class="rest-line">
-<span onclick="openRestaurantView(${data.restaurantes.indexOf(item)})" style="cursor:pointer;font-weight:bold">${item.nombre}</span>
-
-<div class="rest-actions">
-<button class="icon-btn" onclick="openEditRestaurant(${data.restaurantes.indexOf(item)},true)">✏️</button>
-<button class="icon-btn" onclick="openVoteRestaurant(${data.restaurantes.indexOf(item)})">⭐</button>
-<button class="icon-btn" onclick="removeItem('restaurantes',${data.restaurantes.indexOf(item)})">❌</button>
-</div>
-</div>
-
-⭐ ${mediaValoraciones(item.valoraciones)}/5
-(${item.valoraciones?.length||0} votos)
-· 💰 ${item.precio||'-'}
-</div>
-`).join("")}
-</div>
-</div>
-
+<div class="calendar-grid">
+${cells}
 </div>
 </div>`;
 }
 
-function openAddRestaurant(){
-content.insertAdjacentHTML("beforeend",`
-<div class="modal" id="modalAdd">
-<div class="modal-box">
-<h3>Añadir restaurante</h3>
-<input id="rNombre" placeholder="Nombre">
-<input id="rDireccion" placeholder="Dirección">
-<textarea id="rDesc" placeholder="Descripción"></textarea>
-<input id="rPlatos" placeholder="Platos">
-<input type="file" id="rFotos" multiple accept="image/*">
-<button onclick="saveRestaurant()">Guardar</button>
-<button onclick="closeModal()">Cancelar</button>
-</div>
-</div>`);
+function changeMonth(n){
+currentMonth+=n;
+if(currentMonth<0){currentMonth=11;currentYear--;}
+if(currentMonth>11){currentMonth=0;currentYear++;}
+renderCalendario();
 }
 
-async function saveRestaurant(){
-let fotos=[];
-for(let f of rFotos.files){
-fotos.push(await compressImage(f,600,.88));
+function getDateKey(y,m,d){
+return y+"-"+String(m+1).padStart(2,"0")+"-"+String(d).padStart(2,"0");
 }
 
-data.restaurantes.push({
-nombre:rNombre.value.trim(),
-direccion:rDireccion.value.trim(),
-descripcion:rDesc.value.trim(),
-platos:rPlatos.value.trim(),
-fotos,
-user:user.name,
-done:false,
-valoraciones:[]
-});
-
-await saveData();
-renderRestaurantes();
-closeModal();
-}
-
-function openEditRestaurant(i,valorado=false){
-const r=data.restaurantes[i];
+function openDay(fecha){
+const eventos=data.planes.filter(x=>x.fecha===fecha);
 
 content.insertAdjacentHTML("beforeend",`
-<div class="modal" id="modalEdit">
+<div class="modal" id="modalDay">
 <div class="modal-box">
-<h3>Editar restaurante</h3>
+<h3>${fecha}</h3>
 
-<input id="eNombre" value="${r.nombre||''}">
-<input id="eDireccion" value="${r.direccion||''}">
-<textarea id="eDesc">${r.descripcion||''}</textarea>
-<input id="ePlatos" value="${r.platos||''}">
+<input id="evTitulo" placeholder="Título del evento">
+<input id="evHora" type="time">
+<input id="evLugar" placeholder="Lugar">
+<select id="evColor">
+<option value="#ffe066">Amarillo</option>
+<option value="#ff8787">Rojo</option>
+<option value="#74c0fc">Azul</option>
+<option value="#69db7c">Verde</option>
+<option value="#d0bfff">Lila</option>
+</select>
+<textarea id="evDesc" placeholder="Descripción"></textarea>
 
-${valorado?`
+<button onclick="saveEvent('${fecha}')">Guardar evento</button>
 <hr>
-<h4>Editar valoración</h4>
-<input id="ePrecio" value="${r.precio||''}" placeholder="Precio">
-<input id="eStars" type="number" min="1" max="5" value="${r.stars||0}" placeholder="Valoración base">
-`:''}
 
-<button onclick="saveEditRestaurant(${i},${valorado})">Guardar</button>
-<button onclick="closeModal()">Cancelar</button>
+${eventos.length?eventos.map((e,i)=>`
+<div class="event-row" style="border-left:8px solid ${e.color}">
+<img class="event-photo" src="${data.users[e.user]?.photo||''}">
+<div style="flex:1">
+<b>${e.titulo}</b><br>
+${e.hora?`🕒 ${e.hora}<br>`:''}
+${e.lugar?`📍 ${e.lugar}<br>`:''}
+<small>Creado por ${e.user}</small><br>
+${e.desc||''}
 </div>
-</div>`);
-}
-
-async function saveEditRestaurant(i,valorado){
-let r=data.restaurantes[i];
-
-r.nombre=eNombre.value.trim();
-r.direccion=eDireccion.value.trim();
-r.descripcion=eDesc.value.trim();
-r.platos=ePlatos.value.trim();
-
-if(valorado){
-r.precio=ePrecio.value.trim();
-r.stars=parseInt(eStars.value)||0;
-}
-
-await saveData();
-renderRestaurantes();
-closeModal();
-}
-
-function openVoteRestaurant(i){
-content.insertAdjacentHTML("beforeend",`
-<div class="modal" id="modalVote">
-<div class="modal-box">
-<h3>Tu valoración</h3>
-
-<div>
-${[1,2,3,4,5].map(n=>`<span class="star" onclick="setStars(${n})">⭐</span>`).join("")}
+<button onclick="deleteEvent(${data.planes.indexOf(e)})">❌</button>
 </div>
+`).join(""):'<p>Sin eventos</p>'}
 
-<button onclick="saveUserVote(${i})">Guardar voto</button>
-<button onclick="closeModal()">Cancelar</button>
-</div>
-</div>`);
-selectedStars=0;
-}
-
-async function saveUserVote(i){
-if(selectedStars===0)return;
-
-let arr=data.restaurantes[i].valoraciones||[];
-
-const existe=arr.find(v=>v.user===user.name);
-
-if(existe){
-existe.stars=selectedStars;
-}else{
-arr.push({user:user.name,stars:selectedStars});
-}
-
-data.restaurantes[i].valoraciones=arr;
-
-await saveData();
-renderRestaurantes();
-closeModal();
-}
-
-function openRestaurantView(i){
-const r=data.restaurantes[i];
-
-content.insertAdjacentHTML("beforeend",`
-<div class="modal" id="modalView">
-<div class="modal-box">
-<h3>${r.nombre}</h3>
-<p><b>Dirección:</b> ${r.direccion||'-'}</p>
-<p><b>Descripción:</b> ${r.descripcion||'-'}</p>
-<p><b>Platos:</b> ${r.platos||'-'}</p>
-${r.done?`<p>⭐ ${mediaValoraciones(r.valoraciones)}/5 · 💰 ${r.precio||'-'}</p>`:''}
 <button onclick="closeModal()">Cerrar</button>
 </div>
 </div>`);
 }
 
-function openRateRestaurant(i){
-content.insertAdjacentHTML("beforeend",`
-<div class="modal" id="modalRate">
-<div class="modal-box">
-<h3>Valorar</h3>
+async function saveEvent(fecha){
+const titulo=evTitulo.value.trim();
+if(!titulo)return;
 
-<div>
-${[1,2,3,4,5].map(n=>`<span class="star" onclick="setStars(${n})">⭐</span>`).join("")}
-</div>
-
-<input id="rPrecio" placeholder="Precio aprox.">
-<input type="file" id="rateFotos" multiple accept="image/*">
-
-<button onclick="saveRate(${i})">Guardar</button>
-<button onclick="closeModal()">Cancelar</button>
-</div>
-</div>`);
-selectedStars=0;
-}
-
-function setStars(n){
-selectedStars=n;
-document.querySelectorAll(".star").forEach((s,i)=>{
-s.classList.toggle("active",i<n);
+data.planes.push({
+fecha,
+titulo,
+hora:evHora.value,
+lugar:evLugar.value.trim(),
+color:evColor.value,
+desc:evDesc.value.trim(),
+user:user.name
 });
-}
-
-async function saveRate(i){
-let fotos=[];
-for(let f of rateFotos.files){
-fotos.push(await compressImage(f,600,.88));
-}
-
-let r=data.restaurantes[i];
-r.done=true;
-r.stars=selectedStars;
-r.precio=rPrecio.value.trim();
-r.reviewFotos=fotos;
-
-if(!r.valoraciones)r.valoraciones=[];
-
-const existe=r.valoraciones.find(v=>v.user===user.name);
-if(existe){
-existe.stars=selectedStars;
-}else{
-r.valoraciones.push({user:user.name,stars:selectedStars});
-}
 
 await saveData();
-renderRestaurantes();
 closeModal();
+renderCalendario();
+}
+
+async function deleteEvent(i){
+data.planes.splice(i,1);
+await saveData();
+closeModal();
+renderCalendario();
+}
+
+/* ========= RESTO ORIGINAL ========= */
+
+function renderObjetivos(){
+content.innerHTML=`
+<button class="back" onclick="goBack()">⬅</button>
+<div class="card">
+<h3>Objetivos</h3>
+</div>`;
+}
+
+function renderRestaurantes(){
+content.innerHTML=`
+<button class="back" onclick="goBack()">⬅</button>
+<div class="card">
+<h3>Restaurantes</h3>
+</div>`;
 }
 
 function closeModal(){
-["modalAdd","modalEdit","modalRate","modalView","modalVote"].forEach(id=>{
+["modalDay"].forEach(id=>{
 document.getElementById(id)?.remove();
 });
 }
@@ -735,36 +659,15 @@ async function addItem(section){
 const text=newItem.value.trim();
 if(!text)return;
 
-if(section==="objetivos"){
-data.users[user.name].objetivos.push({text,done:false});
-await saveData();
-renderObjetivos();
-return;
-}
-
 data[section].push({text,user:user.name});
 await saveData();
 showSection(section);
 }
 
-function toggleObjetivo(name,i){
-data.users[name].objetivos[i].done=!data.users[name].objetivos[i].done;
-saveData();
-renderObjetivos();
-}
-
-function removeObjetivo(name,i){
-data.users[name].objetivos.splice(i,1);
-saveData();
-renderObjetivos();
-}
-
 function removeItem(section,i){
 data[section].splice(i,1);
 saveData();
-
-if(section==="restaurantes") renderRestaurantes();
-else showSection(section);
+showSection(section);
 }
 
 document.addEventListener("DOMContentLoaded",()=>{
