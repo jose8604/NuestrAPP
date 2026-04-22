@@ -368,6 +368,8 @@ const db=firebase.firestore();
 
 let user=null;
 let selectedStars=0;
+let currentMonth=new Date().getMonth();
+let currentYear=new Date().getFullYear();
 
 let data={
 users:{},
@@ -954,27 +956,15 @@ function closeModal(){
 document.querySelectorAll(".modal").forEach(x=>x.remove());
 }
 
-if(section==="restaurantes") renderRestaurantes();
-else showSection(section);
-}
 
 document.addEventListener("DOMContentLoaded",()=>{
-loadData();
+  loadData();
 
-const saved=localStorage.getItem("user");
-if(saved){
-user=JSON.parse(saved);
-startApp();
-}
-
-
-document.addEventListener("DOMContentLoaded",()=>{
-loadData();
-const saved=localStorage.getItem("user");
-if(saved){
-user=JSON.parse(saved);
-startApp();
-}
+  const saved=localStorage.getItem("user");
+  if(saved){
+    user=JSON.parse(saved);
+    startApp();
+  }
 });
 </script>
 
