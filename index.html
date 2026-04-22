@@ -886,15 +886,21 @@ if(!selectedStars) return;
 if(!data.restaurantes[i].valoraciones)
 data.restaurantes[i].valoraciones=[];
 
+/* borrar voto anterior del usuario */
 data.restaurantes[i].valoraciones =
 data.restaurantes[i].valoraciones.filter(v=>v.user!==user.name);
 
+/* guardar nuevo voto */
 data.restaurantes[i].valoraciones.push({
 user:user.name,
 stars:selectedStars
 });
 
+/* precio */
 data.restaurantes[i].precio=precioRest.value;
+
+/* PASAR A VALORADOS */
+data.restaurantes[i].done=true;
 
 await saveData();
 closeModal();
