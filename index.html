@@ -138,13 +138,9 @@ height:56px;
 border-radius:50%;
 object-fit:cover;
 }
-.done{text-decoration:line-through;opacity:.6;}
-.small-photo{
-width:32px;
-height:32px;
-border-radius:50%;
-object-fit:cover;
-margin-right:8px;
+.done{
+text-decoration:line-through;
+opacity:.6;
 }
 .small-photo{
 width:32px;
@@ -172,6 +168,7 @@ background:#fffdf4;
 border-radius:16px;
 padding:12px;
 text-align:left;
+min-width:0;
 }
 .user-card ul{padding:0;margin:0;}
 .rest-wrap{
@@ -246,63 +243,6 @@ border-radius:50%;
 padding:0;
 font-size:18px;
 }
-
-/* CALENDARIO */
-.cal-head{
-display:flex;
-justify-content:space-between;
-align-items:center;
-margin:10px 0 15px;
-}
-.cal-head h3{margin:0;}
-.cal-nav{
-width:42px;
-height:42px;
-border-radius:50%;
-font-size:20px;
-padding:0;
-}
-.weekdays,.calendar-grid{
-display:grid;
-grid-template-columns:repeat(7,1fr);
-gap:6px;
-}
-.weekdays div{
-font-size:12px;
-font-weight:bold;
-padding:6px 0;
-}
-.day{
-background:#fff9db;
-border-radius:12px;
-min-height:58px;
-padding:6px;
-cursor:pointer;
-font-size:14px;
-position:relative;
-}
-.day.empty{
-background:transparent;
-cursor:default;
-}
-.day.today{
-border:2px solid #ffe066;
-}
-.dot{
-width:8px;
-height:8px;
-border-radius:50%;
-margin:4px auto 0;
-}
-
-.event-item{
-padding:10px;
-border-radius:14px;
-margin:10px 0;
-text-align:left;
-color:#111;
-}
-
 @media(max-width:700px){
 .menu{grid-template-columns:1fr;padding:15px;}
 .users-grid{grid-template-columns:1fr;}
@@ -368,8 +308,6 @@ const db=firebase.firestore();
 
 let user=null;
 let selectedStars=0;
-let currentMonth=new Date().getMonth();
-let currentYear=new Date().getFullYear();
 
 let data={
 users:{},
@@ -385,6 +323,7 @@ menuUser.innerText=user.name;
 menuPhoto.src=data.users[user.name].photo||"";
 }
 }
+
 function closeMenu(){dropdown.style.display="none";}
 function logout(){localStorage.removeItem("user");location.reload();}
 
@@ -414,10 +353,6 @@ db.collection("app").doc("data").onSnapshot(doc=>{
 if(doc.exists){
 data=doc.data();
 if(!data.restaurantes)data.restaurantes=[];
-if(!data.planes)data.planes=[];
-if(!data.sitios)data.sitios=[];
-if(!data.users)data.users={};
-
 }
 });
 }
@@ -475,7 +410,6 @@ mainMenu.style.display="none";
 
 if(section==="objetivos"){renderObjetivos();return;}
 if(section==="restaurantes"){renderRestaurantes();return;}
-if(section==="planes"){renderPlanes();return;}
 
 content.innerHTML=`
 <button class="back" onclick="goBack()">⬅</button>
@@ -484,30 +418,38 @@ content.innerHTML=`
 <button onclick="addItem('${section}')">Añadir</button>
 <ul>
 ${data[section].map((item,i)=>`
-<li><b>${item.user}</b><br>${item.text}
-<br><button onclick="removeItem('${section}',${i})">❌</button></li>
+<li>
+<b>${item.user}</b><br>
+${item.text}
+<br><button onclick="removeItem('${section}',${i})">❌</button>
+</li>
 `).join("")}
 </ul>
 </div>`;
 }
 
-/* OBJETIVOS */
 function renderObjetivos(){
-content.innerHTML=`<button class="back" onclick="goBack()">⬅</button>
+content.innerHTML=`
+<button class="back" onclick="goBack()">⬅</button>
 <div class="card">
 <div class="users-grid">
 ${Object.values(data.users).map(u=>{
 const total=u.objetivos.length;
 const done=u.objetivos.filter(x=>x.done).length;
 const percent=total?(done/total)*100:0;
+
 return `
 <div class="user-card">
 <div class="user-header">
 <div class="progress" style="--progress:${percent}%">
 <img src="${u.photo||''}">
 </div>
-<div><b>${u.name}</b><br><small>${Math.round(percent)}% completado</small></div>
+<div>
+<b>${u.name}</b><br>
+<small>${Math.round(percent)}% completado</small>
 </div>
+</div>
+
 <ul>
 ${u.objetivos.map((o,i)=>`
 <li class="${o.done?'done':''}">
@@ -516,126 +458,18 @@ ${o.text}
 <button onclick="toggleObjetivo('${u.name}',${i})">✔</button>
 <button onclick="removeObjetivo('${u.name}',${i})">❌</button>
 </span>
-</li>`).join("")}
+</li>
+`).join("")}
 </ul>
 </div>`;
 }).join("")}
 </div>
+
 <input id="newItem" placeholder="Nuevo objetivo">
 <button onclick="addItem('objetivos')">Añadir</button>
 </div>`;
 }
 
-/* PLANES CALENDARIO */
-function renderPlanes(){
-const meses=["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
-const primerDia=new Date(currentYear,currentMonth,1).getDay();
-const offset=(primerDia+6)%7;
-const diasMes=new Date(currentYear,currentMonth+1,0).getDate();
-const hoy=new Date();
-
-let grid="";
-for(let i=0;i<offset;i++) grid+=`<div class="day empty"></div>`;
-
-for(let d=1;d<=diasMes;d++){
-const fecha=formatDate(currentYear,currentMonth,d);
-const eventos=data.planes.filter(x=>x.date===fecha);
-const isToday=hoy.getDate()===d && hoy.getMonth()===currentMonth && hoy.getFullYear()===currentYear;
-
-grid+=`
-<div class="day ${isToday?'today':''}" onclick="openDay('${fecha}')">
-${d}
-${eventos[0]?`<div class="dot" style="background:${eventos[0].color||'#ff922b'}"></div>`:''}
-</div>`;
-}
-
-content.innerHTML=`
-<button class="back" onclick="goBack()">⬅</button>
-<div class="card">
-<div class="cal-head">
-<button class="cal-nav" onclick="changeMonth(-1)">◀</button>
-<h3>${meses[currentMonth]} ${currentYear}</h3>
-<button class="cal-nav" onclick="changeMonth(1)">▶</button>
-</div>
-
-<div class="weekdays">
-<div>L</div><div>M</div><div>X</div><div>J</div><div>V</div><div>S</div><div>D</div>
-</div>
-
-<div class="calendar-grid">
-${grid}
-</div>
-</div>`;
-}
-
-function changeMonth(v){
-currentMonth+=v;
-if(currentMonth<0){currentMonth=11;currentYear--;}
-if(currentMonth>11){currentMonth=0;currentYear++;}
-renderPlanes();
-}
-
-function formatDate(y,m,d){
-return y+"-"+String(m+1).padStart(2,"0")+"-"+String(d).padStart(2,"0");
-}
-
-function openDay(fecha){
-const eventos=data.planes.filter(x=>x.date===fecha);
-
-content.insertAdjacentHTML("beforeend",`
-<div class="modal" id="modalDay">
-<div class="modal-box">
-<h3>${fecha}</h3>
-
-<input id="evTitulo" placeholder="Título">
-<input id="evHora" type="time">
-<input id="evLugar" placeholder="Lugar">
-<select id="evColor">
-<option value="#ffd43b">Amarillo</option>
-<option value="#69db7c">Verde</option>
-<option value="#74c0fc">Azul</option>
-<option value="#ff8787">Rojo</option>
-<option value="#d0bfff">Lila</option>
-</select>
-<textarea id="evDesc" placeholder="Descripción"></textarea>
-
-<button onclick="saveEvent('${fecha}')">Añadir evento</button>
-<hr>
-
-${eventos.length?eventos.map((e,i)=>`
-<div class="event-item" style="background:${e.color}">
-<div style="display:flex;align-items:center;gap:8px;">
-<img class="small-photo" src="${data.users[e.user]?.photo||''}">
-<b>${e.title}</b>
-</div>
-<div>🕒 ${e.time||'-'}</div>
-<div>📍 ${e.place||'-'}</div>
-<div>${e.desc||''}</div>
-<small>Creado por ${e.user}</small>
-</div>
-`).join(""):"<p>Sin eventos</p>"}
-
-<button onclick="closeModal()">Cerrar</button>
-</div>
-</div>`);
-}
-
-async function saveEvent(fecha){
-data.planes.push({
-date:fecha,
-title:evTitulo.value.trim(),
-time:evHora.value,
-place:evLugar.value.trim(),
-color:evColor.value,
-desc:evDesc.value.trim(),
-user:user.name
-});
-await saveData();
-closeModal();
-renderPlanes();
-}
-
-/* RESTAURANTES ORIGINAL */
 function mediaValoraciones(arr){
 if(!arr || !arr.length) return 0;
 return (arr.reduce((a,b)=>a+b.stars,0)/arr.length).toFixed(1);
@@ -656,40 +490,26 @@ content.innerHTML=`
 
 <div class="rest-wrap">
 
-<!-- PENDIENTES -->
 <div class="rest-col">
 <b>Pendientes</b>
 <div style="margin-top:10px">
-
-${pendientes.length ? pendientes.map(item=>`
+${pendientes.map(item=>`
 <div class="rest-item">
-
 <div class="rest-line">
 <img class="small-photo" src="${data.users[item.user]?.photo||''}">
-<span onclick="openRestaurantView(${data.restaurantes.indexOf(item)})"
-style="cursor:pointer;font-weight:bold;flex:1;text-align:left">
-${item.nombre}
-</span>
+<span onclick="openRestaurantView(${data.restaurantes.indexOf(item)})" style="cursor:pointer;font-weight:bold">${item.nombre}</span>
 
 <div class="rest-actions">
-<button class="icon-btn"
-onclick="openEditRestaurant(${data.restaurantes.indexOf(item)})">✏️</button>
-
-<button class="icon-btn"
-onclick="removeItem('restaurantes',${data.restaurantes.indexOf(item)})">❌</button>
-
-<button class="icon-btn"
-onclick="openRateRestaurant(${data.restaurantes.indexOf(item)})">✔</button>
+<button class="icon-btn" onclick="openEditRestaurant(${data.restaurantes.indexOf(item)})">✏️</button>
+<button class="icon-btn" onclick="removeItem('restaurantes',${data.restaurantes.indexOf(item)})">❌</button>
+<button class="icon-btn" onclick="openRateRestaurant(${data.restaurantes.indexOf(item)})">✔</button>
 </div>
 </div>
 </div>
-`).join("")
+`).join("")}
 </div>
 </div>
 
-
-
-<!-- VALORADOS -->
 <div class="rest-col">
 <b>Valorados</b>
 <div style="margin-top:10px">
@@ -717,33 +537,26 @@ ${hechos.map(item=>`
 </div>`;
 }
 
-
 function openAddRestaurant(){
 content.insertAdjacentHTML("beforeend",`
-<div class="modal">
+<div class="modal" id="modalAdd">
 <div class="modal-box">
 <h3>Añadir restaurante</h3>
-
 <input id="rNombre" placeholder="Nombre">
 <input id="rDireccion" placeholder="Dirección">
 <textarea id="rDesc" placeholder="Descripción"></textarea>
-<input id="rPlatos" placeholder="Platos recomendados">
+<input id="rPlatos" placeholder="Platos">
 <input type="file" id="rFotos" multiple accept="image/*">
-
 <button onclick="saveRestaurant()">Guardar</button>
 <button onclick="closeModal()">Cancelar</button>
 </div>
-</div>
-`);
+</div>`);
 }
 
 async function saveRestaurant(){
 let fotos=[];
-
-if(rFotos.files.length){
 for(let f of rFotos.files){
 fotos.push(await compressImage(f,600,.88));
-}
 }
 
 data.restaurantes.push({
@@ -751,7 +564,7 @@ nombre:rNombre.value.trim(),
 direccion:rDireccion.value.trim(),
 descripcion:rDesc.value.trim(),
 platos:rPlatos.value.trim(),
-fotos:fotos,
+fotos,
 user:user.name,
 done:false,
 valoraciones:[]
@@ -949,22 +762,19 @@ renderObjetivos();
 function removeItem(section,i){
 data[section].splice(i,1);
 saveData();
-showSection(section);
-}
 
-function closeModal(){
-document.querySelectorAll(".modal").forEach(x=>x.remove());
+if(section==="restaurantes") renderRestaurantes();
+else showSection(section);
 }
-
 
 document.addEventListener("DOMContentLoaded",()=>{
-  loadData();
+loadData();
 
-  const saved=localStorage.getItem("user");
-  if(saved){
-    user=JSON.parse(saved);
-    startApp();
-  }
+const saved=localStorage.getItem("user");
+if(saved){
+user=JSON.parse(saved);
+startApp();
+}
 });
 </script>
 
