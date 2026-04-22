@@ -388,7 +388,7 @@ html+=`</div></div>`;
 
 content.innerHTML=html;
 
-const cal=document.querySelector(".card");
+const cal=document.querySelector(".calendar") || document.querySelector(".card");
 
 cal.addEventListener("touchstart",e=>{
 touchStartX=e.changedTouches[0].screenX;
@@ -504,6 +504,7 @@ mainMenu.style.display="none";
 
 if(section==="objetivos"){renderObjetivos();return;}
 if(section==="restaurantes"){renderRestaurantes();return;}
+if(section==="planes"){renderCalendar();return;}
 
 content.innerHTML=`
 <button class="back" onclick="goBack()">⬅</button>
