@@ -249,6 +249,36 @@ font-size:18px;
 .rest-wrap{grid-template-columns:1fr;}
 .card{margin:10px;padding:16px;}
 }
+
+/* ===== CALENDARIO ===== */
+.calendar{
+user-select:none;
+}
+.calendar-header{
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:10px;
+font-weight:bold;
+}
+.calendar-grid{
+display:grid;
+grid-template-columns:repeat(7,1fr);
+gap:6px;
+}
+.day-name{
+font-size:12px;
+opacity:.6;
+}
+.day{
+background:#fff9db;
+padding:10px 0;
+border-radius:10px;
+font-size:14px;
+}
+.day.empty{
+background:transparent;
+}
 </style>
 </head>
 
@@ -315,6 +345,74 @@ planes:[],
 restaurantes:[],
 sitios:[]
 };
+
+/* ===== CALENDARIO PLANES ===== */
+let currentDate = new Date();
+let touchStartX = 0;
+
+function renderCalendar(){
+const year=currentDate.getFullYear();
+const month=currentDate.getMonth();
+
+const firstDay=new Date(year,month,1).getDay();
+const daysInMonth=new Date(year,month+1,0).getDate();
+
+const monthNames=[
+"Enero","Febrero","Marzo","Abril","Mayo","Junio",
+"Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"
+];
+
+let html=`
+<div class="card calendar" id="calendar">
+<button class="back" onclick="goBack()">⬅</button>
+
+<div class="calendar-header">
+<span onclick="changeMonth(-1)" style="cursor:pointer">◀</span>
+<span>${monthNames[month]} ${year}</span>
+<span onclick="changeMonth(1)" style="cursor:pointer">▶</span>
+</div>
+
+<div class="calendar-grid">
+<div class="day-name">L</div>
+<div class="day-name">M</div>
+<div class="day-name">X</div>
+<div class="day-name">J</div>
+<div class="day-name">V</div>
+<div class="day-name">S</div>
+<div class="day-name">D</div>
+`;
+
+for(let i=0;i<firstDay;i++){
+html+=`<div class="day empty"></div>`;
+}
+
+for(let d=1;d<=daysInMonth;d++){
+html+=`<div class="day">${d}</div>`;
+}
+
+html+=`</div></div>`;
+
+content.innerHTML=html;
+
+const cal=document.getElementById("calendar");
+
+cal.addEventListener("touchstart",e=>{
+touchStartX=e.changedTouches[0].screenX;
+});
+
+cal.addEventListener("touchend",e=>{
+let dx=e.changedTouches[0].screenX-touchStartX;
+if(Math.abs(dx)>50){
+if(dx<0) changeMonth(1);
+else changeMonth(-1);
+}
+});
+}
+
+function changeMonth(dir){
+currentDate.setMonth(currentDate.getMonth()+dir);
+renderCalendar();
+}
 
 function toggleMenu(){
 dropdown.style.display=dropdown.style.display==="block"?"none":"block";
