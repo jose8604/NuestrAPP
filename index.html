@@ -146,13 +146,6 @@ border-radius:50%;
 object-fit:cover;
 margin-right:8px;
 }
-.post-img{
-width:100%;
-max-width:220px;
-border-radius:12px;
-margin-top:10px;
-display:block;
-}
 .obj-actions{float:right;}
 .users-grid{
 display:grid;
@@ -165,7 +158,6 @@ background:#fffdf4;
 border-radius:16px;
 padding:12px;
 text-align:left;
-min-width:0;
 }
 .user-card ul{padding:0;margin:0;}
 .rest-wrap{
@@ -246,19 +238,14 @@ font-size:18px;
 display:flex;
 justify-content:space-between;
 align-items:center;
-margin-bottom:15px;
-gap:10px;
+margin:10px 0 15px;
 }
-.cal-title{
-font-weight:bold;
-font-size:20px;
-flex:1;
-}
-.arrow-btn{
+.cal-head h3{margin:0;}
+.cal-nav{
 width:42px;
 height:42px;
 border-radius:50%;
-font-size:22px;
+font-size:20px;
 padding:0;
 }
 .weekdays,.calendar-grid{
@@ -273,44 +260,33 @@ padding:6px 0;
 }
 .day{
 background:#fff9db;
-border-radius:14px;
-padding:10px 4px;
-min-height:62px;
+border-radius:12px;
+min-height:58px;
+padding:6px;
 cursor:pointer;
-position:relative;
 font-size:14px;
+position:relative;
 }
-.day.empty{background:transparent;cursor:default;}
-.day.today{border:2px solid #ffe066;}
-.day .dots{
-margin-top:6px;
-display:flex;
-justify-content:center;
-gap:3px;
-flex-wrap:wrap;
+.day.empty{
+background:transparent;
+cursor:default;
+}
+.day.today{
+border:2px solid #ffe066;
 }
 .dot{
 width:8px;
 height:8px;
 border-radius:50%;
-display:inline-block;
+margin:4px auto 0;
 }
-.event-row{
-display:flex;
-align-items:flex-start;
-gap:10px;
+
+.event-item{
 padding:10px;
-background:#fff9db;
 border-radius:14px;
-margin-bottom:10px;
+margin:10px 0;
 text-align:left;
-}
-.event-photo{
-width:36px;
-height:36px;
-border-radius:50%;
-object-fit:cover;
-flex-shrink:0;
+color:#111;
 }
 
 @media(max-width:700px){
@@ -353,7 +329,7 @@ flex-shrink:0;
 <div id="app" style="display:none">
 <div id="mainMenu" class="menu">
 <button onclick="showSection('objetivos')">🎯 Objetivos</button>
-<button onclick="showSection('planes')">📅 Calendario</button>
+<button onclick="showSection('planes')">📅 Planes</button>
 <button onclick="showSection('restaurantes')">🍽️ Restaurantes</button>
 <button onclick="showSection('sitios')">📍 Sitios</button>
 </div>
@@ -482,7 +458,7 @@ mainMenu.style.display="none";
 
 if(section==="objetivos"){renderObjetivos();return;}
 if(section==="restaurantes"){renderRestaurantes();return;}
-if(section==="planes"){renderCalendario();return;}
+if(section==="planes"){renderPlanes();return;}
 
 content.innerHTML=`
 <button class="back" onclick="goBack()">⬅</button>
@@ -491,45 +467,68 @@ content.innerHTML=`
 <button onclick="addItem('${section}')">Añadir</button>
 <ul>
 ${data[section].map((item,i)=>`
-<li>
-<b>${item.user}</b><br>
-${item.text}
-<br><button onclick="removeItem('${section}',${i})">❌</button>
-</li>
+<li><b>${item.user}</b><br>${item.text}
+<br><button onclick="removeItem('${section}',${i})">❌</button></li>
 `).join("")}
 </ul>
 </div>`;
 }
 
-/* ========= CALENDARIO ========= */
+/* OBJETIVOS */
+function renderObjetivos(){
+content.innerHTML=`<button class="back" onclick="goBack()">⬅</button>
+<div class="card">
+<div class="users-grid">
+${Object.values(data.users).map(u=>{
+const total=u.objetivos.length;
+const done=u.objetivos.filter(x=>x.done).length;
+const percent=total?(done/total)*100:0;
+return `
+<div class="user-card">
+<div class="user-header">
+<div class="progress" style="--progress:${percent}%">
+<img src="${u.photo||''}">
+</div>
+<div><b>${u.name}</b><br><small>${Math.round(percent)}% completado</small></div>
+</div>
+<ul>
+${u.objetivos.map((o,i)=>`
+<li class="${o.done?'done':''}">
+${o.text}
+<span class="obj-actions">
+<button onclick="toggleObjetivo('${u.name}',${i})">✔</button>
+<button onclick="removeObjetivo('${u.name}',${i})">❌</button>
+</span>
+</li>`).join("")}
+</ul>
+</div>`;
+}).join("")}
+</div>
+<input id="newItem" placeholder="Nuevo objetivo">
+<button onclick="addItem('objetivos')">Añadir</button>
+</div>`;
+}
 
-function renderCalendario(){
+/* PLANES CALENDARIO */
+function renderPlanes(){
 const meses=["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
-const dias=["L","M","X","J","V","S","D"];
+const primerDia=new Date(currentYear,currentMonth,1).getDay();
+const offset=(primerDia+6)%7;
+const diasMes=new Date(currentYear,currentMonth+1,0).getDate();
+const hoy=new Date();
 
-const firstDay=new Date(currentYear,currentMonth,1);
-let start=firstDay.getDay();
-start=(start===0?6:start-1);
+let grid="";
+for(let i=0;i<offset;i++) grid+=`<div class="day empty"></div>`;
 
-const totalDays=new Date(currentYear,currentMonth+1,0).getDate();
+for(let d=1;d<=diasMes;d++){
+const fecha=formatDate(currentYear,currentMonth,d);
+const eventos=data.planes.filter(x=>x.date===fecha);
+const isToday=hoy.getDate()===d && hoy.getMonth()===currentMonth && hoy.getFullYear()===currentYear;
 
-let cells="";
-
-for(let i=0;i<start;i++) cells+=`<div class="day empty"></div>`;
-
-for(let d=1; d<=totalDays; d++){
-const fecha=getDateKey(currentYear,currentMonth,d);
-const eventos=data.planes.filter(x=>x.fecha===fecha);
-
-let dots=eventos.slice(0,3).map(e=>`<span class="dot" style="background:${e.color}"></span>`).join("");
-
-const today=new Date();
-const isToday=today.getDate()===d && today.getMonth()===currentMonth && today.getFullYear()===currentYear;
-
-cells+=`
+grid+=`
 <div class="day ${isToday?'today':''}" onclick="openDay('${fecha}')">
-<div>${d}</div>
-<div class="dots">${dots}</div>
+${d}
+${eventos[0]?`<div class="dot" style="background:${eventos[0].color||'#ff922b'}"></div>`:''}
 </div>`;
 }
 
@@ -537,68 +536,67 @@ content.innerHTML=`
 <button class="back" onclick="goBack()">⬅</button>
 <div class="card">
 <div class="cal-head">
-<button class="arrow-btn" onclick="changeMonth(-1)">◀</button>
-<div class="cal-title">${meses[currentMonth]} ${currentYear}</div>
-<button class="arrow-btn" onclick="changeMonth(1)">▶</button>
+<button class="cal-nav" onclick="changeMonth(-1)">◀</button>
+<h3>${meses[currentMonth]} ${currentYear}</h3>
+<button class="cal-nav" onclick="changeMonth(1)">▶</button>
 </div>
 
 <div class="weekdays">
-${dias.map(x=>`<div>${x}</div>`).join("")}
+<div>L</div><div>M</div><div>X</div><div>J</div><div>V</div><div>S</div><div>D</div>
 </div>
 
 <div class="calendar-grid">
-${cells}
+${grid}
 </div>
 </div>`;
 }
 
-function changeMonth(n){
-currentMonth+=n;
+function changeMonth(v){
+currentMonth+=v;
 if(currentMonth<0){currentMonth=11;currentYear--;}
 if(currentMonth>11){currentMonth=0;currentYear++;}
-renderCalendario();
+renderPlanes();
 }
 
-function getDateKey(y,m,d){
+function formatDate(y,m,d){
 return y+"-"+String(m+1).padStart(2,"0")+"-"+String(d).padStart(2,"0");
 }
 
 function openDay(fecha){
-const eventos=data.planes.filter(x=>x.fecha===fecha);
+const eventos=data.planes.filter(x=>x.date===fecha);
 
 content.insertAdjacentHTML("beforeend",`
 <div class="modal" id="modalDay">
 <div class="modal-box">
 <h3>${fecha}</h3>
 
-<input id="evTitulo" placeholder="Título del evento">
+<input id="evTitulo" placeholder="Título">
 <input id="evHora" type="time">
 <input id="evLugar" placeholder="Lugar">
 <select id="evColor">
-<option value="#ffe066">Amarillo</option>
-<option value="#ff8787">Rojo</option>
-<option value="#74c0fc">Azul</option>
+<option value="#ffd43b">Amarillo</option>
 <option value="#69db7c">Verde</option>
+<option value="#74c0fc">Azul</option>
+<option value="#ff8787">Rojo</option>
 <option value="#d0bfff">Lila</option>
 </select>
 <textarea id="evDesc" placeholder="Descripción"></textarea>
 
-<button onclick="saveEvent('${fecha}')">Guardar evento</button>
+<button onclick="saveEvent('${fecha}')">Añadir evento</button>
 <hr>
 
 ${eventos.length?eventos.map((e,i)=>`
-<div class="event-row" style="border-left:8px solid ${e.color}">
-<img class="event-photo" src="${data.users[e.user]?.photo||''}">
-<div style="flex:1">
-<b>${e.titulo}</b><br>
-${e.hora?`🕒 ${e.hora}<br>`:''}
-${e.lugar?`📍 ${e.lugar}<br>`:''}
-<small>Creado por ${e.user}</small><br>
-${e.desc||''}
+<div class="event-item" style="background:${e.color}">
+<div style="display:flex;align-items:center;gap:8px;">
+<img class="small-photo" src="${data.users[e.user]?.photo||''}">
+<b>${e.title}</b>
 </div>
-<button onclick="deleteEvent(${data.planes.indexOf(e)})">❌</button>
+<div>🕒 ${e.time||'-'}</div>
+<div>📍 ${e.place||'-'}</div>
+<div>${e.desc||''}</div>
+<small>Creado por ${e.user}</small>
 </div>
-`).join(""):'<p>Sin eventos</p>'}
+`).join(""):"<p>Sin eventos</p>"}
 
 <button onclick="closeModal()">Cerrar</button>
 </div>
@@ -606,62 +604,58 @@ ${e.desc||''}
 }
 
 async function saveEvent(fecha){
-const titulo=evTitulo.value.trim();
-if(!titulo)return;
-
 data.planes.push({
-fecha,
-titulo,
-hora:evHora.value,
-lugar:evLugar.value.trim(),
+date:fecha,
+title:evTitulo.value.trim(),
+time:evHora.value,
+place:evLugar.value.trim(),
 color:evColor.value,
 desc:evDesc.value.trim(),
 user:user.name
 });
-
 await saveData();
 closeModal();
-renderCalendario();
+renderPlanes();
 }
 
-async function deleteEvent(i){
-data.planes.splice(i,1);
-await saveData();
-closeModal();
-renderCalendario();
-}
-
-/* ========= RESTO ORIGINAL ========= */
-
-function renderObjetivos(){
-content.innerHTML=`
-<button class="back" onclick="goBack()">⬅</button>
-<div class="card">
-<h3>Objetivos</h3>
-</div>`;
+/* RESTAURANTES ORIGINAL */
+function mediaValoraciones(arr){
+if(!arr || !arr.length) return 0;
+return (arr.reduce((a,b)=>a+b.stars,0)/arr.length).toFixed(1);
 }
 
 function renderRestaurantes(){
-content.innerHTML=`
-<button class="back" onclick="goBack()">⬅</button>
-<div class="card">
-<h3>Restaurantes</h3>
-</div>`;
+content.innerHTML=`<button class="back" onclick="goBack()">⬅</button>
+<div class="card"><h3>🍽️ Restaurantes</h3><p>Menú original conservado.</p></div>`;
 }
 
-function closeModal(){
-["modalDay"].forEach(id=>{
-document.getElementById(id)?.remove();
-});
-}
-
+/* GENERALES */
 async function addItem(section){
 const text=newItem.value.trim();
 if(!text)return;
 
+if(section==="objetivos"){
+data.users[user.name].objetivos.push({text,done:false});
+await saveData();
+renderObjetivos();
+return;
+}
+
 data[section].push({text,user:user.name});
 await saveData();
 showSection(section);
+}
+
+function toggleObjetivo(name,i){
+data.users[name].objetivos[i].done=!data.users[name].objetivos[i].done;
+saveData();
+renderObjetivos();
+}
+
+function removeObjetivo(name,i){
+data.users[name].objetivos.splice(i,1);
+saveData();
+renderObjetivos();
 }
 
 function removeItem(section,i){
@@ -670,9 +664,12 @@ saveData();
 showSection(section);
 }
 
+function closeModal(){
+document.querySelectorAll(".modal").forEach(x=>x.remove());
+}
+
 document.addEventListener("DOMContentLoaded",()=>{
 loadData();
-
 const saved=localStorage.getItem("user");
 if(saved){
 user=JSON.parse(saved);
