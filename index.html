@@ -625,8 +625,103 @@ return (arr.reduce((a,b)=>a+b.stars,0)/arr.length).toFixed(1);
 }
 
 function renderRestaurantes(){
-content.innerHTML=`<button class="back" onclick="goBack()">⬅</button>
-<div class="card"><h3>🍽️ Restaurantes</h3><p>Menú original conservado.</p></div>`;
+const pendientes=data.restaurantes.filter(x=>!x.done);
+const hechos=data.restaurantes.filter(x=>x.done);
+
+content.innerHTML=`
+<button class="back" onclick="goBack()">⬅</button>
+
+<div class="card">
+<div class="rest-top">
+<h3 style="margin:0">🍽️ Restaurantes</h3>
+<button class="plus-btn" onclick="openAddRestaurant()">+</button>
+</div>
+
+<div class="rest-wrap">
+
+<!-- PENDIENTES -->
+<div class="rest-col">
+<b>Pendientes</b>
+<div style="margin-top:10px">
+
+${pendientes.length ? pendientes.map(item=>`
+<div class="rest-item">
+
+<div class="rest-line">
+<img class="small-photo" src="${data.users[item.user]?.photo||''}">
+<span onclick="openRestaurantView(${data.restaurantes.indexOf(item)})"
+style="cursor:pointer;font-weight:bold;flex:1;text-align:left">
+${item.nombre}
+</span>
+
+<div class="rest-actions">
+<button class="icon-btn"
+onclick="openEditRestaurant(${data.restaurantes.indexOf(item)})">✏️</button>
+
+<button class="icon-btn"
+onclick="removeItem('restaurantes',${data.restaurantes.indexOf(item)})">❌</button>
+
+<button class="icon-btn"
+onclick="openRateRestaurant(${data.restaurantes.indexOf(item)})">✔</button>
+</div>
+</div>
+
+${item.direccion?`<div style="font-size:13px;margin-top:6px;">📍 ${item.direccion}</div>`:''}
+${item.descripcion?`<div style="font-size:13px;margin-top:4px;">${item.descripcion}</div>`:''}
+
+</div>
+`).join("") : "<p>No hay pendientes</p>"}
+
+</div>
+</div>
+
+<!-- VALORADOS -->
+<div class="rest-col">
+<b>Valorados</b>
+<div style="margin-top:10px">
+
+${hechos.length ? hechos.map(item=>`
+<div class="rest-item">
+
+<div class="rest-line">
+<img class="small-photo" src="${data.users[item.user]?.photo||''}">
+
+<span onclick="openRestaurantView(${data.restaurantes.indexOf(item)})"
+style="cursor:pointer;font-weight:bold;flex:1;text-align:left">
+${item.nombre}
+</span>
+
+<div class="rest-actions">
+<button class="icon-btn"
+onclick="openEditRestaurant(${data.restaurantes.indexOf(item)},true)">✏️</button>
+
+<button class="icon-btn"
+onclick="openVoteRestaurant(${data.restaurantes.indexOf(item)})">⭐</button>
+
+<button class="icon-btn"
+onclick="removeItem('restaurantes',${data.restaurantes.indexOf(item)})">❌</button>
+</div>
+</div>
+
+<div style="margin-top:8px;font-size:14px;">
+⭐ ${mediaValoraciones(item.valoraciones)}/5
+(${item.valoraciones?.length||0} votos)
+</div>
+
+<div style="margin-top:4px;font-size:14px;">
+💰 ${item.precio||'-'}
+</div>
+
+${item.direccion?`<div style="font-size:13px;margin-top:4px;">📍 ${item.direccion}</div>`:''}
+
+</div>
+`).join("") : "<p>No hay valorados</p>"}
+
+</div>
+</div>
+
+</div>
+</div>`;
 }
 
 /* GENERALES */
