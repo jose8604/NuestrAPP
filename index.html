@@ -401,6 +401,9 @@ if(doc.exists){
 data=doc.data();
 if(!data.restaurantes)data.restaurantes=[];
 if(!data.planes)data.planes=[];
+if(!data.sitios)data.sitios=[];
+if(!data.users)data.users={};
+
 }
 });
 }
@@ -675,6 +678,8 @@ ${item.descripcion?`<div style="font-size:13px;margin-top:4px;">${item.descripci
 </div>
 </div>
 
+
+
 <!-- VALORADOS -->
 <div class="rest-col">
 <b>Valorados</b>
@@ -722,6 +727,50 @@ ${item.direccion?`<div style="font-size:13px;margin-top:4px;">📍 ${item.direcc
 
 </div>
 </div>`;
+}
+
+function openAddRestaurant(){
+content.insertAdjacentHTML("beforeend",`
+<div class="modal">
+<div class="modal-box">
+<h3>Añadir restaurante</h3>
+
+<input id="rNombre" placeholder="Nombre">
+<input id="rDireccion" placeholder="Dirección">
+<textarea id="rDesc" placeholder="Descripción"></textarea>
+<input id="rPlatos" placeholder="Platos recomendados">
+<input type="file" id="rFotos" multiple accept="image/*">
+
+<button onclick="saveRestaurant()">Guardar</button>
+<button onclick="closeModal()">Cancelar</button>
+</div>
+</div>
+`);
+}
+
+async function saveRestaurant(){
+let fotos=[];
+
+if(rFotos.files.length){
+for(let f of rFotos.files){
+fotos.push(await compressImage(f,600,.88));
+}
+}
+
+data.restaurantes.push({
+nombre:rNombre.value.trim(),
+direccion:rDireccion.value.trim(),
+descripcion:rDesc.value.trim(),
+platos:rPlatos.value.trim(),
+fotos:fotos,
+user:user.name,
+done:false,
+valoraciones:[]
+});
+
+await saveData();
+closeModal();
+renderRestaurantes();
 }
 
 /* GENERALES */
