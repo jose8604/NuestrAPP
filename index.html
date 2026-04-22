@@ -666,7 +666,7 @@ onclick="openEditRestaurant(${data.restaurantes.indexOf(item)})">✏️</button>
 onclick="removeItem('restaurantes',${data.restaurantes.indexOf(item)})">❌</button>
 
 <button class="icon-btn"
-onclick="openRateRestaurant(${data.restaurantes.indexOf(item)})">✔</button>
+onclick="openVoteRestaurant(${data.restaurantes.indexOf(item)})">✔</button>
 </div>
 </div>
 </div>
@@ -713,8 +713,6 @@ onclick="removeItem('restaurantes',${data.restaurantes.indexOf(item)})">❌</but
 <div style="margin-top:4px;font-size:14px;">
 💰 ${item.precio||'-'}
 </div>
-
-${item.direccion?`<div style="font-size:13px;margin-top:4px;">📍 ${item.direccion}</div>`:''}
 
 </div>
 `).join("") : "<p>No hay valorados</p>"}
@@ -844,12 +842,6 @@ ${r.fotos?.map(f=>`
 </div>
 </div>
 `);
-}
-
-async function openRateRestaurant(i){
-data.restaurantes[i].done=true;
-await saveData();
-renderRestaurantes();
 }
 
 function openVoteRestaurant(i){
