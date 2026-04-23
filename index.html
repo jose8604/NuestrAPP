@@ -923,6 +923,12 @@ content.insertAdjacentHTML("beforeend",`
 <textarea id="editVT">${v.notas||''}</textarea>
 
 <button onclick="saveEditViaje(${i})">Guardar</button>
+
+<button style="background:#ff8787;margin-top:10px;"
+onclick="deleteViaje(${i})">
+🗑️ Eliminar viaje
+</button>
+
 <button onclick="closeModal()">Cancelar</button>
 
 </div>
@@ -959,6 +965,31 @@ content.insertAdjacentHTML("beforeend",`
 </div>
 </div>
 `);
+}
+
+async function deleteViaje(i){
+
+let viaje=data.viajes[i];
+
+/* borrar del calendario si tenía fecha */
+if(viaje.fecha){
+
+data.planes = data.planes.filter(ev =>
+!(
+ev.date===viaje.fecha &&
+ev.title==="✈️ "+viaje.nombre
+)
+
+);
+}
+
+/* borrar viaje */
+data.viajes.splice(i,1);
+
+await saveData();
+
+closeModal();
+renderViajes();
 }
 
 async function moveViaje(i){
