@@ -329,7 +329,7 @@ color:#111;
 <div id="app" style="display:none">
 <div id="mainMenu" class="menu">
 <button onclick="showSection('objetivos')">🎯 Objetivos</button>
-<button onclick="showSection('planes')">📅 Planes</button>
+<button onclick="showSection('planes')">📅 Calendario</button>
 <button onclick="showSection('restaurantes')">🍽️ Restaurantes</button>
 <button onclick="showSection('sitios')">📍 Sitios</button>
 </div>
@@ -593,8 +593,13 @@ ${eventos.length?eventos.map((e,i)=>`
 <div class="event-item" style="background:${e.color}">
 <div style="display:flex;align-items:center;gap:8px;">
 <img class="small-photo" src="${data.users[e.user]?.photo||''}">
-<b>${e.title}</b>
+<b style="flex:1">${e.title}</b>
+
+<button class="icon-btn"
+onclick="openEditEvent('${fecha}',${i})">✏️</button>
+
 </div>
+
 <div>🕒 ${e.time||'-'}</div>
 <div>📍 ${e.place||'-'}</div>
 <div>${e.desc||''}</div>
@@ -941,6 +946,50 @@ r.platos=ePlatos.value;
 await saveData();
 closeModal();
 renderRestaurantes();
+}
+
+function openEditEvent(fecha,i){
+
+const eventos=data.planes.filter(x=>x.date===fecha);
+const ev=eventos[i];
+
+content.insertAdjacentHTML("beforeend",`
+<div class="modal">
+<div class="modal-box">
+
+<h3>Editar evento</h3>
+
+<input id="editTitulo" value="${ev.title}">
+<input id="editHora" type="time" value="${ev.time}">
+<input id="editLugar" value="${ev.place}">
+<textarea id="editDesc">${ev.desc}</textarea>
+
+<button onclick="saveEditEvent('${fecha}',${i})">Guardar</button>
+<button onclick="closeModal()">Cancelar</button>
+
+</div>
+</div>
+`);
+}
+
+async function saveEditEvent(fecha,i){
+
+let index=data.planes.findIndex((x,n)=>
+x.date===fecha &&
+data.planes.filter(y=>y.date===fecha).indexOf(x)===i
+);
+
+if(index===-1) return;
+
+data.planes[index].title=editTitulo.value;
+data.planes[index].time=editHora.value;
+data.planes[index].place=editLugar.value;
+data.planes[index].desc=editDesc.value;
+
+await saveData();
+closeModal();
+closeModal();
+openDay(fecha);
 }
 
 document.addEventListener("DOMContentLoaded",()=>{
