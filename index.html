@@ -363,7 +363,7 @@ let currentYear=new Date().getFullYear();
 
 let data={
 users:{},
-calendario:[],
+planes:[],
 restaurantes:[],
 viajes:[]
 };
@@ -405,7 +405,7 @@ if(doc.exists){
 data=doc.data();
 
 if(!data.restaurantes)data.restaurantes=[];
-if(!data.calendario)data.calendario=[];
+if(!data.planes)data.planes=[];
 if(!data.viajes)data.viajes=[];
 if(!data.users)data.users={};
 
