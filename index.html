@@ -335,7 +335,7 @@ color:#111;
 <button onclick="showSection('objetivos')">🎯 Objetivos</button>
 <button onclick="showSection('planes')">📅 Calendario</button>
 <button onclick="showSection('restaurantes')">🍽️ Restaurantes</button>
-<button onclick="showSection('sitios')">🌍 Viajes</button>
+<button onclick="showSection('viajes')">🌍 Viajes</button>
 </div>
 <div id="content"></div>
 </div>
@@ -464,22 +464,25 @@ function showSection(section){
 closeMenu();
 mainMenu.style.display="none";
 
-if(section==="objetivos"){renderObjetivos();return;}
-if(section==="restaurantes"){renderRestaurantes();return;}
-if(section==="viajes"){renderViajes();return;}
+if(section==="objetivos"){
+renderObjetivos();
+return;
+}
 
-content.innerHTML=`
-<button class="back" onclick="goBack()">⬅</button>
-<div class="card">
-<input id="newItem" placeholder="Escribe algo">
-<button onclick="addItem('${section}')">Añadir</button>
-<ul>
-${data[section].map((item,i)=>`
-<li><b>${item.user}</b><br>${item.text}
-<br><button onclick="removeItem('${section}',${i})">❌</button></li>
-`).join("")}
-</ul>
-</div>`;
+if(section==="planes"){
+renderPlanes();
+return;
+}
+
+if(section==="restaurantes"){
+renderRestaurantes();
+return;
+}
+
+if(section==="viajes"){
+renderViajes();
+return;
+}
 }
 
 /* OBJETIVOS */
