@@ -261,11 +261,15 @@ padding:6px 0;
 .day{
 background:#fff9db;
 border-radius:12px;
-min-height:58px;
+min-height:78px;
 padding:6px;
 cursor:pointer;
 font-size:14px;
 position:relative;
+display:flex;
+flex-direction:column;
+align-items:flex-start;
+justify-content:flex-start;
 }
 .day.empty{
 background:transparent;
@@ -532,8 +536,23 @@ const isToday=hoy.getDate()===d && hoy.getMonth()===currentMonth && hoy.getFullY
 grid+=`
 <div class="day ${isToday?'today':''}" onclick="openDay('${fecha}')">
 ${d}
-${eventos[0]?`<div class="dot" style="background:${eventos[0].color||'#ff922b'}"></div>`:''}
-</div>`;
+<div style="margin-top:4px;">
+${eventos.map(ev=>`
+<div style="
+background:${ev.color||'#ffd43b'};
+border-radius:8px;
+font-size:10px;
+padding:2px 4px;
+margin-top:3px;
+white-space:nowrap;
+overflow:hidden;
+text-overflow:ellipsis;
+line-height:1.2;
+">
+${ev.title}
+</div>
+`).join("")}
+</div></div>`;
 }
 
 content.innerHTML=`
@@ -597,6 +616,9 @@ ${eventos.length?eventos.map((e,i)=>`
 
 <button class="icon-btn"
 onclick="openEditEvent('${fecha}',${i})">✏️</button>
+
+<button class="icon-btn"
+onclick="deleteEvent('${fecha}',${i})">🗑️</button>
 
 </div>
 
@@ -990,6 +1012,25 @@ await saveData();
 closeModal();
 closeModal();
 openDay(fecha);
+}
+
+async function deleteEvent(fecha,i){
+
+let lista=data.planes.filter(x=>x.date===fecha);
+let ev=lista[i];
+
+let index=data.planes.indexOf(ev);
+
+if(index===-1) return;
+
+data.planes.splice(index,1);
+
+await saveData();
+
+closeModal();
+closeModal();
+openDay(fecha);
+renderPlanes();
 }
 
 document.addEventListener("DOMContentLoaded",()=>{
