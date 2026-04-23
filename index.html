@@ -335,7 +335,7 @@ color:#111;
 <button onclick="showSection('objetivos')">🎯 Objetivos</button>
 <button onclick="showSection('planes')">📅 Calendario</button>
 <button onclick="showSection('restaurantes')">🍽️ Restaurantes</button>
-<button onclick="showSection('sitios')">📍 Sitios</button>
+<button onclick="showSection('sitios')">🌍 Viajes</button>
 </div>
 <div id="content"></div>
 </div>
@@ -363,9 +363,9 @@ let currentYear=new Date().getFullYear();
 
 let data={
 users:{},
-planes:[],
+calendario:[],
 restaurantes:[],
-sitios:[]
+viajes:[]
 };
 
 function toggleMenu(){
@@ -405,8 +405,8 @@ if(doc.exists){
 data=doc.data();
 
 if(!data.restaurantes)data.restaurantes=[];
-if(!data.planes)data.planes=[];
-if(!data.sitios)data.sitios=[];
+if(!data.calendario)data.calendario=[];
+if(!data.viajes)data.viajes=[];
 if(!data.users)data.users={};
 
 }
@@ -466,7 +466,7 @@ mainMenu.style.display="none";
 
 if(section==="objetivos"){renderObjetivos();return;}
 if(section==="restaurantes"){renderRestaurantes();return;}
-if(section==="planes"){renderPlanes();return;}
+if(section==="viajes"){renderViajes();return;}
 
 content.innerHTML=`
 <button class="back" onclick="goBack()">⬅</button>
@@ -795,6 +795,223 @@ closeModal();
 renderRestaurantes();
 }
 
+function renderViajes(){
+
+const pendientes=data.viajes.filter(x=>x.estado==="pendiente");
+const proximos=data.viajes.filter(x=>x.estado==="proximo");
+const visitados=data.viajes.filter(x=>x.estado==="visitado");
+
+content.innerHTML=`
+<button class="back" onclick="goBack()">⬅</button>
+
+<div class="card">
+
+<div class="rest-top">
+<h3 style="margin:0">🌍 Viajes</h3>
+<button class="plus-btn" onclick="openAddViaje()">+</button>
+</div>
+
+<div class="rest-wrap">
+
+<div class="rest-col">
+<b>Pendientes</b>
+${pendientes.map(v=>`
+<div class="rest-item">
+<b>${v.nombre}</b><br>
+💰 ${v.presupuesto||'-'}
+
+<div class="rest-actions" style="margin-top:8px;">
+<button class="icon-btn" onclick="openEditViaje(${data.viajes.indexOf(v)})">✏️</button>
+<button class="icon-btn" onclick="removeItem('viajes',${data.viajes.indexOf(v)})">🗑️</button>
+<button class="icon-btn" onclick="openMoveViaje(${data.viajes.indexOf(v)})">📅</button>
+</div>
+</div>
+`).join("") || "<p>Sin viajes</p>"}
+</div>
+
+
+<div class="rest-col">
+<b>Próximos</b>
+${proximos.map(v=>`
+<div class="rest-item">
+<b>${v.nombre}</b><br>
+📅 ${v.fecha}<br>
+💰 ${v.presupuesto||'-'}
+
+<div class="rest-actions" style="margin-top:8px;">
+<button class="icon-btn" onclick="openEditViaje(${data.viajes.indexOf(v)})">✏️</button>
+<button class="icon-btn" onclick="removeItem('viajes',${data.viajes.indexOf(v)})">🗑️</button>
+<button class="icon-btn" onclick="openFinishViaje(${data.viajes.indexOf(v)})">✔</button>
+</div>
+</div>
+`).join("") || "<p>Sin próximos</p>"}
+</div>
+
+
+<div class="rest-col">
+<b>Visitados</b>
+${visitados.map(v=>`
+<div class="rest-item">
+<b>${v.nombre}</b><br>
+⭐ ${v.valoracion||'-'}<br>
+💰 ${v.precioFinal||'-'}
+</div>
+`).join("") || "<p>Sin visitados</p>"}
+</div>
+
+</div>
+</div>
+`;
+}
+
+
+
+function openAddViaje(){
+content.insertAdjacentHTML("beforeend",`
+<div class="modal">
+<div class="modal-box">
+
+<h3>Nuevo viaje</h3>
+
+<input id="viajeNombre" placeholder="Destino">
+<input id="viajePresupuesto" placeholder="Presupuesto aprox">
+<textarea id="viajeNotas" placeholder="Notas"></textarea>
+
+<button onclick="saveViaje()">Guardar</button>
+<button onclick="closeModal()">Cancelar</button>
+
+</div>
+</div>
+`);
+}
+
+async function saveViaje(){
+
+data.viajes.push({
+nombre:viajeNombre.value,
+presupuesto:viajePresupuesto.value,
+notas:viajeNotas.value,
+estado:"pendiente",
+fecha:"",
+valoracion:"",
+precioFinal:"",
+user:user.name
+});
+
+await saveData();
+closeModal();
+renderViajes();
+}
+
+
+
+function openEditViaje(i){
+
+let v=data.viajes[i];
+
+content.insertAdjacentHTML("beforeend",`
+<div class="modal">
+<div class="modal-box">
+
+<h3>Editar viaje</h3>
+
+<input id="editVN" value="${v.nombre}">
+<input id="editVP" value="${v.presupuesto}">
+<textarea id="editVT">${v.notas||''}</textarea>
+
+<button onclick="saveEditViaje(${i})">Guardar</button>
+<button onclick="closeModal()">Cancelar</button>
+
+</div>
+</div>
+`);
+}
+
+async function saveEditViaje(i){
+
+data.viajes[i].nombre=editVN.value;
+data.viajes[i].presupuesto=editVP.value;
+data.viajes[i].notas=editVT.value;
+
+await saveData();
+closeModal();
+renderViajes();
+}
+
+
+
+function openMoveViaje(i){
+
+content.insertAdjacentHTML("beforeend",`
+<div class="modal">
+<div class="modal-box">
+
+<h3>Elegir fecha</h3>
+
+<input type="date" id="fechaViaje">
+
+<button onclick="moveViaje(${i})">Guardar</button>
+<button onclick="closeModal()">Cancelar</button>
+
+</div>
+</div>
+`);
+}
+
+async function moveViaje(i){
+
+let fecha=fechaViaje.value;
+
+data.viajes[i].estado="proximo";
+data.viajes[i].fecha=fecha;
+
+data.planes.push({
+date:fecha,
+title:"✈️ "+data.viajes[i].nombre,
+time:"",
+place:data.viajes[i].nombre,
+color:"#74c0fc",
+desc:"Viaje programado",
+user:user.name
+});
+
+await saveData();
+closeModal();
+renderViajes();
+}
+
+
+
+function openFinishViaje(i){
+
+content.insertAdjacentHTML("beforeend",`
+<div class="modal">
+<div class="modal-box">
+
+<h3>Finalizar viaje</h3>
+
+<input id="notaViaje" placeholder="Valoración 1-5">
+<input id="precioFinalViaje" placeholder="Precio total">
+
+<button onclick="finishViaje(${i})">Guardar</button>
+<button onclick="closeModal()">Cancelar</button>
+
+</div>
+</div>
+`);
+}
+
+async function finishViaje(i){
+
+data.viajes[i].estado="visitado";
+data.viajes[i].valoracion=notaViaje.value;
+data.viajes[i].precioFinal=precioFinalViaje.value;
+
+await saveData();
+closeModal();
+renderViajes();
+}
+
 /* GENERALES */
 async function addItem(section){
 const text=newItem.value.trim();
@@ -827,7 +1044,9 @@ renderObjetivos();
 function removeItem(section,i){
 data[section].splice(i,1);
 saveData();
-showSection(section);
+
+if(section==="viajes") renderViajes();
+else showSection(section);
 }
 
 function closeModal(){
