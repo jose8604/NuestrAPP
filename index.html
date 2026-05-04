@@ -409,8 +409,32 @@ if(!data.planes)data.planes=[];
 if(!data.viajes)data.viajes=[];
 if(!data.users)data.users={};
 
+refreshUI();
+
 }
 });
+}
+
+function refreshUI(){
+
+/* detecta que pantalla estás viendo */
+
+if(content.innerHTML.includes("Objetivos")){
+renderObjetivos();
+}
+
+else if(content.innerHTML.includes("Restaurantes")){
+renderRestaurantes();
+}
+
+else if(content.innerHTML.includes("Viajes")){
+renderViajes();
+}
+
+else if(content.innerHTML.includes("calendar-grid")){
+renderPlanes();
+}
+
 }
 
 async function saveData(){
