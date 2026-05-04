@@ -356,6 +356,7 @@ appId:"1:11964303180:web:28412e809348d20d6af1e9"
 firebase.initializeApp(firebaseConfig);
 const db=firebase.firestore();
 
+let currentSection = "";
 let user=null;
 let selectedStars=0;
 let currentMonth=new Date().getMonth();
@@ -417,23 +418,13 @@ refreshUI();
 
 function refreshUI(){
 
-/* detecta que pantalla estás viendo */
+if(currentSection==="objetivos") renderObjetivos();
 
-if(content.innerHTML.includes("Objetivos")){
-renderObjetivos();
-}
+else if(currentSection==="restaurantes") renderRestaurantes();
 
-else if(content.innerHTML.includes("Restaurantes")){
-renderRestaurantes();
-}
+else if(currentSection==="viajes") renderViajes();
 
-else if(content.innerHTML.includes("Viajes")){
-renderViajes();
-}
-
-else if(content.innerHTML.includes("calendar-grid")){
-renderPlanes();
-}
+else if(currentSection==="planes") renderPlanes();
 
 }
 
@@ -487,6 +478,8 @@ mainMenu.style.display="grid";
 function showSection(section){
 closeMenu();
 mainMenu.style.display="none";
+
+currentSection = section;
 
 if(section==="objetivos"){
 renderObjetivos();
