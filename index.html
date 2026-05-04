@@ -918,14 +918,14 @@ ${visitados.map(v=>`
 <b>${v.nombre}</b><br>
 ⭐ ${v.valoracion||'-'}<br>
 💰 ${v.precioFinal||'-'}
-</div>
-`).join("") || "<p>Sin visitados</p>"}
+
+<div class="rest-actions" style="margin-top:8px;">
+<button class="icon-btn" onclick="deleteViaje(${data.viajes.indexOf(v)})">🗑️</button>
 </div>
 
 </div>
+`).join("") || "<p>Sin visitados</p>"}
 </div>
-`;
-}
 
 
 
@@ -1028,7 +1028,7 @@ content.insertAdjacentHTML("beforeend",`
 }
 
 async function deleteViaje(i){
-
+if(!confirm("¿Eliminar viaje?")) return;
 let viaje=data.viajes[i];
 
 /* borrar del calendario si tenía fecha */
