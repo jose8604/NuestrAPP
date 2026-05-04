@@ -892,7 +892,6 @@ ${pendientes.map(v=>`
 `).join("") || "<p>Sin viajes</p>"}
 </div>
 
-
 <div class="rest-col">
 <b>Próximos</b>
 ${proximos.map(v=>`
@@ -908,8 +907,8 @@ ${proximos.map(v=>`
 </div>
 </div>
 `).join("") || "<p>Sin próximos</p>"}
-</div>
 
+</div>
 
 <div class="rest-col">
 <b>Visitados</b>
@@ -925,7 +924,13 @@ ${visitados.map(v=>`
 
 </div>
 `).join("") || "<p>Sin visitados</p>"}
+
 </div>
+
+</div>
+</div>
+`;
+}
 
 
 
@@ -1028,7 +1033,7 @@ content.insertAdjacentHTML("beforeend",`
 }
 
 async function deleteViaje(i){
-
+if(!confirm("¿Eliminar viaje?")) return;
 let viaje=data.viajes[i];
 
 /* borrar del calendario si tenía fecha */
