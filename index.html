@@ -319,6 +319,9 @@ color:#111;
 
 <button style="width:100%;" onclick="logout()">Cerrar sesión 🚪</button>
 </div>
+
+<button onclick="activarNotificaciones()">🔔 Activar notificaciones</button>
+</div>
 </header>
 
 <div id="auth">
@@ -342,6 +345,7 @@ color:#111;
 
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-messaging.js"></script>
 
 <script>
 const firebaseConfig={
@@ -355,6 +359,51 @@ appId:"1:11964303180:web:28412e809348d20d6af1e9"
 
 firebase.initializeApp(firebaseConfig);
 const db=firebase.firestore();
+
+const messaging = firebase.messaging();
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/firebase-messaging-sw.js')
+    .then(reg => {
+      console.log("Service Worker registrado", reg);
+    })
+    .catch(err => console.error("SW error", err));
+}
+
+messaging.onMessage(payload => {
+  if (payload.notification) {
+    alert(payload.notification.title + " - " + payload.notification.body);
+  } else {
+    console.log("Mensaje recibido:", payload);
+  }
+});
+async function activarNotificaciones(){
+
+try{
+const permission = await Notification.requestPermission();
+
+if(permission !== "granted"){
+alert("Has bloqueado notificaciones");
+return;
+}
+
+const token = await messaging.getToken({
+vapidKey: "BChCZK0Dvbv_JUZqpyUF63gM_SVy9ZtOgY2H7lYO8MnwxbdpXG3UoKkKQDq0WgZVWYyr5bcGP4IaR4CDGwaakZo"
+});
+
+console.log("TOKEN:", token);
+
+// guardar token en usuario
+data.users[user.name].token = token;
+await saveData();
+
+alert("Notificaciones activadas 🔔");
+
+}catch(err){
+console.error(err);
+}
+}
+
 
 let currentSection = "";
 let user=null;
