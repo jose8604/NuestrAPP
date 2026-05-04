@@ -433,34 +433,42 @@ await db.collection("app").doc("data").set(data);
 }
 
 async function register(){
-const name=nameInput.value.trim();
-const pass=passInput.value.trim();
-const file=photoInput.files[0];
-if(!name||!pass)return;
+const name = nameInput.value.trim();
+const pass = passInput.value.trim();
+const file = photoInput.files[0];
 
-let photo="";
-if(file)photo=await compressImage(file);
-
-data.users[name]={name,password:pass,photo,objetivos:[]};
-await saveData();
-
-user={name};
-localStorage.setItem("user",JSON.stringify(user));
-startApp();
+if(!name || !pass){
+alert("Rellena usuario y contraseña");
+return;
 }
 
-async function login(){
-const name=nameInput.value.trim();
-const pass=passInput.value.trim();
+// 🔴 COMPROBAR SI YA EXISTE
+const doc = await db.collection("app").doc("data").get();
+if(doc.exists){
+data = doc.data();
+}
 
-const doc=await db.collection("app").doc("data").get();
-if(doc.exists)data=doc.data();
+if(data.users && data.users[name]){
+alert("Ese usuario ya existe ❌");
+return;
+}
 
-if(!data.users[name]) return alert("No existe");
-if(data.users[name].password!==pass) return alert("Contraseña incorrecta");
+// 📸 FOTO
+let photo = "";
+if(file) photo = await compressImage(file);
 
-user={name};
-localStorage.setItem("user",JSON.stringify(user));
+// ✅ CREAR USUARIO
+data.users[name] = {
+name,
+password: pass,
+photo,
+objetivos: []
+};
+
+await saveData();
+
+user = {name};
+localStorage.setItem("user", JSON.stringify(user));
 startApp();
 }
 
