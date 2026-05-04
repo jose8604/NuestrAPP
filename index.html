@@ -472,6 +472,41 @@ localStorage.setItem("user", JSON.stringify(user));
 startApp();
 }
 
+async function login(){
+
+  const name = nameInput.value.trim();
+  const pass = passInput.value.trim();
+
+  if(!name || !pass){
+    alert("Rellena usuario y contraseña");
+    return;
+  }
+
+  const doc = await db.collection("app").doc("data").get();
+
+  if(!doc.exists){
+    alert("No hay datos");
+    return;
+  }
+
+  data = doc.data();
+
+  if(!data.users || !data.users[name]){
+    alert("Usuario no existe");
+    return;
+  }
+
+  if(data.users[name].password !== pass){
+    alert("Contraseña incorrecta");
+    return;
+  }
+
+  user = {name};
+  localStorage.setItem("user", JSON.stringify(user));
+
+  startApp();
+}
+
 function startApp(){
 auth.style.display="none";
 app.style.display="block";
@@ -1312,7 +1347,6 @@ renderPlanes();
 }
 
 document.addEventListener("DOMContentLoaded",()=>{
-loadData();
 const saved=localStorage.getItem("user");
 if(saved){
 user=JSON.parse(saved);
