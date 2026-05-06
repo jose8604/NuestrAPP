@@ -131,6 +131,7 @@ display:flex;
 align-items:center;
 justify-content:center;
 flex-shrink:0;
+transition: all 0.8s ease;
 }
 .progress img{
 width:56px;
@@ -558,7 +559,7 @@ const percent=total?(done/total)*100:0;
 return `
 <div class="user-card">
 <div class="user-header">
-<div class="progress" style="--progress:${percent}%">
+<div class="progress" style="--progress:0%" data-progress="${percent}">
 <img src="${u.photo||''}">
 </div>
 <div><b>${u.name}</b><br><small>${Math.round(percent)}% completado</small></div>
@@ -578,6 +579,7 @@ ${o.text}
 </div>
 <input id="newItem" placeholder="Nuevo objetivo">
 <button onclick="addItem('objetivos')">Añadir</button>
+setTimeout(animarProgreso, 50);
 </div>`;
 }
 
@@ -789,7 +791,9 @@ ${item.nombre}
 onclick="openEditRestaurant(${data.restaurantes.indexOf(item)},true)">✏️</button>
 
 <button class="icon-btn"
-onclick="openVoteRestaurant(${data.restaurantes.indexOf(item)})">⭐</button>
+onclick="openVoteRestaurant(${data.restaurantes.indexOf(item)})">
+⭐
+</button>
 
 <button class="icon-btn"
 onclick="removeItem('restaurantes',${data.restaurantes.indexOf(item)})">❌</button>
@@ -1403,6 +1407,16 @@ user=JSON.parse(saved);
 startApp();
 }
 });
+
+function animarProgreso(){
+document.querySelectorAll(".progress").forEach(el=>{
+const value = el.getAttribute("data-progress");
+setTimeout(()=>{
+el.style.setProperty("--progress", value + "%");
+}, 100);
+});
+}
+
 </script>
 
 </body>
