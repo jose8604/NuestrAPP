@@ -510,6 +510,7 @@ async function login(){
 function startApp(){
 auth.style.display="none";
 app.style.display="block";
+document.querySelector(".menu-btn").style.display="block";
 loadData();
 }
 
@@ -915,7 +916,7 @@ ${proximos.map(v=>`
 ${visitados.map(v=>`
 <div class="rest-item">
 <b>${v.nombre}</b><br>
-⭐ ${v.valoracion||'-'}<br>
+${"⭐".repeat(v.valoracion || 0)}<br>
 💰 ${v.precioFinal||'-'}
 
 <div class="rest-actions" style="margin-top:8px;">
@@ -1081,7 +1082,11 @@ renderViajes();
 
 
 
+let estrellasViaje = 0;
+
 function openFinishViaje(i){
+
+estrellasViaje = 0;
 
 content.insertAdjacentHTML("beforeend",`
 <div class="modal">
@@ -1089,7 +1094,14 @@ content.insertAdjacentHTML("beforeend",`
 
 <h3>Finalizar viaje</h3>
 
-<input id="notaViaje" placeholder="Valoración 1-5">
+<div>
+<span class="star" onclick="setStarsViaje(1)">⭐</span>
+<span class="star" onclick="setStarsViaje(2)">⭐</span>
+<span class="star" onclick="setStarsViaje(3)">⭐</span>
+<span class="star" onclick="setStarsViaje(4)">⭐</span>
+<span class="star" onclick="setStarsViaje(5)">⭐</span>
+</div>
+
 <input id="precioFinalViaje" placeholder="Precio total">
 
 <button onclick="finishViaje(${i})">Guardar</button>
@@ -1102,8 +1114,13 @@ content.insertAdjacentHTML("beforeend",`
 
 async function finishViaje(i){
 
+if(!estrellasViaje){
+alert("Selecciona una valoración");
+return;
+}
+
 data.viajes[i].estado="visitado";
-data.viajes[i].valoracion=notaViaje.value;
+data.viajes[i].valoracion=estrellasViaje;
 data.viajes[i].precioFinal=precioFinalViaje.value;
 
 await saveData();
@@ -1221,6 +1238,14 @@ selectedStars=n;
 
 document.querySelectorAll(".star").forEach((s,i)=>{
 s.classList.toggle("active",i<n);
+});
+}
+
+function setStarsViaje(n){
+estrellasViaje = n;
+
+document.querySelectorAll(".modal .star").forEach((s,i)=>{
+s.classList.toggle("active", i < n);
 });
 }
 
@@ -1352,6 +1377,7 @@ renderPlanes();
 }
 
 document.addEventListener("DOMContentLoaded",()=>{
+document.querySelector(".menu-btn").style.display="none";
 const saved=localStorage.getItem("user");
 if(saved){
 user=JSON.parse(saved);
