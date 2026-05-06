@@ -921,6 +921,7 @@ ${visitados.map(v=>`
 💰 ${v.precioFinal||'-'}
 
 <div class="rest-actions" style="margin-top:8px;">
+<button class="icon-btn" onclick="openVoteViaje(${data.viajes.indexOf(v)})">⭐</button>
 <button class="icon-btn" onclick="deleteViaje(${data.viajes.indexOf(v)})">🗑️</button>
 </div>
 
@@ -973,7 +974,31 @@ closeModal();
 renderViajes();
 }
 
+function openVoteViaje(i){
 
+estrellasViaje = 0;
+
+content.insertAdjacentHTML("beforeend",`
+<div class="modal">
+<div class="modal-box">
+
+<h3>Valorar viaje</h3>
+
+<div>
+<span class="star" onclick="setStarsViaje(1)">⭐</span>
+<span class="star" onclick="setStarsViaje(2)">⭐</span>
+<span class="star" onclick="setStarsViaje(3)">⭐</span>
+<span class="star" onclick="setStarsViaje(4)">⭐</span>
+<span class="star" onclick="setStarsViaje(5)">⭐</span>
+</div>
+
+<button onclick="saveVoteViaje(${i})">Guardar</button>
+<button onclick="closeModal()">Cancelar</button>
+
+</div>
+</div>
+`);
+}
 
 function openEditViaje(i){
 
@@ -1136,6 +1161,31 @@ stars:estrellasViaje
 // actualizar estado
 data.viajes[i].estado="visitado";
 data.viajes[i].precioFinal=precioFinalViaje.value;
+
+await saveData();
+closeModal();
+renderViajes();
+}
+
+async function saveVoteViaje(i){
+
+if(!estrellasViaje){
+alert("Selecciona una valoración");
+return;
+}
+
+if(!data.viajes[i].valoraciones)
+data.viajes[i].valoraciones=[];
+
+// quitar voto anterior del usuario
+data.viajes[i].valoraciones =
+data.viajes[i].valoraciones.filter(v=>v.user!==user.name);
+
+// añadir nuevo voto
+data.viajes[i].valoraciones.push({
+user:user.name,
+stars:estrellasViaje
+});
 
 await saveData();
 closeModal();
