@@ -299,6 +299,11 @@ color:#111;
 .rest-wrap{grid-template-columns:1fr;}
 .card{margin:10px;padding:16px;}
 }
+
+.progress{
+transition: background 0.3s ease;
+}
+
 </style>
 </head>
 
@@ -558,7 +563,7 @@ const percent=total?(done/total)*100:0;
 return `
 <div class="user-card">
 <div class="user-header">
-<div class="progress" style="--progress:${percent}%">
+<div class="progress" data-progress="${percent}">
 <img src="${u.photo||''}">
 </div>
 <div><b>${u.name}</b><br><small>${Math.round(percent)}% completado</small></div>
@@ -579,6 +584,8 @@ ${o.text}
 <input id="newItem" placeholder="Nuevo objetivo">
 <button onclick="addItem('objetivos')">Añadir</button>
 </div>`;
+
+setTimeout(animateProgressBars, 50);
 }
 
 /* PLANES CALENDARIO */
@@ -1252,19 +1259,93 @@ const r=data.restaurantes[i];
 
 content.insertAdjacentHTML("beforeend",`
 <div class="modal">
-<div class="modal-box">
+<div class="modal-box" style="padding:0;overflow:hidden">
 
-<h3>${r.nombre}</h3>
-<p>📍 ${r.direccion||""}</p>
-<p>${r.descripcion||""}</p>
-<p>🍴 ${r.platos||""}</p>
+<!-- HEADER BONITO -->
+<div style="
+background:#ffe066;
+padding:16px;
+text-align:left;
+position:sticky;
+top:0;
+">
 
-${r.fotos?.map(f=>`
-<img src="${f}" style="width:100%;border-radius:12px;margin:8px 0;">
-`).join("")||""}
+<h2 style="margin:0;font-size:20px;">
+🍽️ ${r.nombre}
+</h2>
 
-<button onclick="closeModal()">Cerrar</button>
+<small>Creado por ${r.user}</small>
+</div>
 
+<!-- CONTENIDO -->
+<div style="padding:16px;text-align:left;">
+
+<!-- INFO EN TARJETAS -->
+<div style="
+background:#fff9db;
+padding:10px;
+border-radius:12px;
+margin-bottom:10px;
+">
+📍 <b>Dirección:</b><br>
+${r.direccion||"Sin dirección"}
+</div>
+
+<div style="
+background:#fff9db;
+padding:10px;
+border-radius:12px;
+margin-bottom:10px;
+">
+📝 <b>Descripción:</b><br>
+${r.descripcion||"Sin descripción"}
+</div>
+
+<div style="
+background:#fff9db;
+padding:10px;
+border-radius:12px;
+margin-bottom:10px;
+">
+🍴 <b>Platos recomendados:</b><br>
+${r.platos||"Sin información"}
+</div>
+
+<!-- FOTOS -->
+${r.fotos?.length ? `
+<div style="margin-top:10px;">
+<b>📸 Fotos</b>
+<div style="
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:8px;
+margin-top:8px;
+">
+${r.fotos.map(f=>`
+<img src="${f}" style="
+width:100%;
+height:120px;
+object-fit:cover;
+border-radius:12px;
+">
+`).join("")}
+</div>
+</div>
+` : ""}
+
+<!-- BOTÓN -->
+<button onclick="closeModal()" style="
+margin-top:15px;
+width:100%;
+padding:12px;
+border-radius:12px;
+background:#ffe066;
+font-weight:bold;
+">
+Cerrar
+</button>
+
+</div>
 </div>
 </div>
 `);
@@ -1453,6 +1534,30 @@ user=JSON.parse(saved);
 startApp();
 }
 });
+
+function animateProgressBars(){
+  document.querySelectorAll(".progress").forEach(el=>{
+    let target = Number(el.dataset.progress || 0);
+    let current = 0;
+
+    function step(){
+      current += (target - current) * 0.08;
+
+      if(Math.abs(target - current) < 0.5){
+        current = target;
+      }
+
+      el.style.setProperty("--progress", current + "%");
+
+      if(current !== target){
+        requestAnimationFrame(step);
+      }
+    }
+
+    step();
+  });
+}
+
 </script>
 
 </body>
