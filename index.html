@@ -916,7 +916,8 @@ ${proximos.map(v=>`
 ${visitados.map(v=>`
 <div class="rest-item">
 <b>${v.nombre}</b><br>
-${"⭐".repeat(v.valoracion || 0)}<br>
+⭐ ${mediaViajes(v.valoraciones)}/5
+(${v.valoraciones?.length || 0} votos)
 💰 ${v.precioFinal||'-'}
 
 <div class="rest-actions" style="margin-top:8px;">
@@ -962,7 +963,7 @@ presupuesto:viajePresupuesto.value,
 notas:viajeNotas.value,
 estado:"pendiente",
 fecha:"",
-valoracion:"",
+valoraciones:[]
 precioFinal:"",
 user:user.name
 });
@@ -1119,8 +1120,21 @@ alert("Selecciona una valoración");
 return;
 }
 
+if(!data.viajes[i].valoraciones)
+data.viajes[i].valoraciones=[];
+
+// borrar voto anterior del usuario
+data.viajes[i].valoraciones =
+data.viajes[i].valoraciones.filter(v=>v.user!==user.name);
+
+// guardar nuevo voto
+data.viajes[i].valoraciones.push({
+user:user.name,
+stars:estrellasViaje
+});
+
+// actualizar estado
 data.viajes[i].estado="visitado";
-data.viajes[i].valoracion=estrellasViaje;
 data.viajes[i].precioFinal=precioFinalViaje.value;
 
 await saveData();
@@ -1204,6 +1218,11 @@ ${r.fotos?.map(f=>`
 </div>
 </div>
 `);
+}
+
+function mediaViajes(arr){
+if(!arr || !arr.length) return 0;
+return (arr.reduce((a,b)=>a+b.stars,0)/arr.length).toFixed(1);
 }
 
 function openVoteRestaurant(i){
