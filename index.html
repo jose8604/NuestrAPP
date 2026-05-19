@@ -763,6 +763,7 @@ button{
 <div id="menuUser" style="margin-top:8px;font-weight:bold;"></div>
 
 <button class="change-photo-btn" onclick="openSettings()">⚙️ Configuración</button>
+<button class="change-photo-btn" onclick="openRoomSwitcher()">🔁 Cambiar sala</button>
 </div>
 
 <button style="width:100%;" onclick="logout()">Cerrar sesión 🚪</button>
@@ -951,6 +952,8 @@ else if(currentSection==="planes") renderPlanes();
 
 else if(currentSection==="settings") renderSettings();
 
+else if(currentSection==="roomSwitcher") renderRoomSwitcher();
+
 }
 
 async function register(){
@@ -1038,6 +1041,9 @@ function startApp(){
   app.style.display = "block";
   document.querySelector(".menu-btn").style.display = "block";
   loadData();
+if(roomCode && data.roomName){
+  saveRoomToList(roomCode, data.roomName);
+}
 }
 
 function goBack(){
@@ -2174,6 +2180,7 @@ async function createRoom(){
   await db.collection("rooms").doc(roomCode).set(data);
 
   localStorage.setItem("roomCode", roomCode);
+  saveRoomToList(roomCode, data.roomName);
 
   createdRoomCode.innerText = roomCode;
   createdInviteLink.value = getInviteLink(roomCode);
@@ -2200,8 +2207,119 @@ async function joinRoom(){
   }
 
   roomCode = code;
+data = doc.data();
+normalizeData();
+
+localStorage.setItem("roomCode", roomCode);
+saveRoomToList(roomCode, data.roomName);
+
+continueToLogin();
+}
+
+function getSavedRooms(){
+  return JSON.parse(localStorage.getItem("savedRooms") || "[]");
+}
+
+function saveRoomToList(code, name){
+  let rooms = getSavedRooms();
+
+  rooms = rooms.filter(r=>r.code !== code);
+
+  rooms.unshift({
+    code,
+    name:name || "Sala sin nombre"
+  });
+
+  localStorage.setItem("savedRooms", JSON.stringify(rooms));
+}
+
+function openRoomSwitcher(){
+  closeMenu();
+  mainMenu.style.display = "none";
+  currentSection = "roomSwitcher";
+  renderRoomSwitcher();
+}
+
+function renderRoomSwitcher(){
+  const rooms = getSavedRooms();
+
+  content.innerHTML = `
+    <button class="back" onclick="goBack()">⬅</button>
+
+    <div class="card settings-card">
+      <h3>Cambiar sala</h3>
+
+      <div style="text-align:left;margin-bottom:18px;">
+        ${rooms.length ? rooms.map(r=>`
+          <div class="rest-item">
+            <b>${r.name}</b><br>
+            <small>Código: ${r.code}</small>
+
+            <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
+              <button onclick="switchRoom('${r.code}')">Entrar</button>
+              <button onclick="removeSavedRoom('${r.code}')">Quitar</button>
+            </div>
+          </div>
+        `).join("") : "<p>No tienes salas guardadas todavía</p>"}
+      </div>
+
+      <h3>Añadir sala</h3>
+      <input id="switchRoomCode" maxlength="6" placeholder="Código de 6 cifras">
+      <button onclick="addRoomByCode()">Añadir sala</button>
+    </div>
+  `;
+}
+
+async function addRoomByCode(){
+  const code = switchRoomCode.value.trim();
+
+  if(!/^\d{6}$/.test(code)){
+    alert("Introduce un código válido de 6 cifras");
+    return;
+  }
+
+  const doc = await db.collection("rooms").doc(code).get();
+
+  if(!doc.exists){
+    alert("No existe ninguna sala con ese código");
+    return;
+  }
+
+  const roomData = doc.data();
+  saveRoomToList(code, roomData.roomName || "Sala sin nombre");
+
+  alert("Sala añadida");
+  renderRoomSwitcher();
+}
+
+async function switchRoom(code){
+  const doc = await db.collection("rooms").doc(code).get();
+
+  if(!doc.exists){
+    alert("Esta sala ya no existe");
+    return;
+  }
+
+  roomCode = code;
+  data = doc.data();
+  normalizeData();
+
   localStorage.setItem("roomCode", roomCode);
-  continueToLogin();
+  saveRoomToList(roomCode, data.roomName);
+
+  currentSection = "";
+  content.innerHTML = "";
+  mainMenu.style.display = "grid";
+
+  roomTitle.innerText = data.roomName || "Nuestra App";
+  renderMainMenu();
+  loadData();
+}
+
+function removeSavedRoom(code){
+  let rooms = getSavedRooms().filter(r=>r.code !== code);
+  localStorage.setItem("savedRooms", JSON.stringify(rooms));
+  renderRoomSwitcher();
 }
 
 function continueToLogin(){
