@@ -668,6 +668,86 @@ button{
   color:#2f9e44;
   font-weight:700;
 }
+
+.gate-card{
+  width:min(460px,calc(100% - 32px));
+  margin:46px auto 0;
+}
+
+.gate-card h1{
+  margin:8px 0 18px;
+  font-size:42px;
+}
+
+.gate-card label,
+.settings-check{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin:10px 0;
+  padding:12px;
+  text-align:left;
+  border-radius:16px;
+  background:#fff;
+  border:1px solid var(--line);
+}
+
+.gate-card input[type="checkbox"],
+.settings-check input{
+  width:auto;
+  margin:0;
+}
+
+.settings-layout{
+  display:grid;
+  grid-template-columns:220px 1fr;
+  gap:18px;
+  text-align:left;
+}
+
+.settings-nav{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+.settings-nav button{
+  width:100%;
+  justify-content:flex-start;
+  background:#fff;
+  border:1px solid var(--line);
+  box-shadow:none;
+}
+
+.settings-panel{
+  min-width:0;
+}
+
+.settings-panel ul{
+  padding:0;
+  margin:0 0 18px;
+}
+
+.settings-panel li{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+@media(max-width:700px){
+  .settings-layout{
+    grid-template-columns:1fr;
+  }
+
+  .settings-nav{
+    flex-direction:row;
+  }
+
+  .settings-nav button{
+    justify-content:center;
+  }
+}
+
 </style>
 </head>
 
@@ -675,28 +755,65 @@ button{
 
 <header>
 <div class="menu-btn" onclick="toggleMenu()">☰</div>
-💛 Nuestra App 💛
+💛 <span id="roomTitle">Nuestra App</span> 💛
 
 <div id="dropdown" class="dropdown">
 <div class="profile-box">
 <img id="menuPhoto" class="profile-photo" src="">
 <div id="menuUser" style="margin-top:8px;font-weight:bold;"></div>
 
-<input type="file" id="changePhotoInput" accept="image/*" style="display:none">
-<button class="change-photo-btn" onclick="changePhotoInput.click()">📷 Cambiar foto</button>
+<button class="change-photo-btn" onclick="openSettings()">⚙️ Configuración</button>
 </div>
 
 <button style="width:100%;" onclick="logout()">Cerrar sesión 🚪</button>
 </div>
 </header>
 
-<div id="auth">
-<h2>Iniciar sesión</h2>
-<input id="nameInput" placeholder="Usuario">
-<input id="passInput" type="password" placeholder="Contraseña">
-<input id="photoInput" type="file" accept="image/*">
-<button onclick="login()">Entrar</button>
-<button onclick="register()">Crear cuenta</button>
+<div id="roomGate" class="card gate-card">
+  <div id="roomStart">
+    <h2>Entrar a una sala</h2>
+    <button onclick="showCreateRoom()">Crear sala</button>
+    <button onclick="showJoinRoom()">Unirte a sala</button>
+  </div>
+
+  <div id="createRoomBox" style="display:none">
+    <h2>Crear sala</h2>
+    <input id="newRoomName" placeholder="Nombre de la sala">
+
+    <h3>Elige los menús</h3>
+    <label><input type="checkbox" class="menuCheck" value="objetivos" checked> Objetivos</label>
+    <label><input type="checkbox" class="menuCheck" value="planes" checked> Calendario</label>
+    <label><input type="checkbox" class="menuCheck" value="restaurantes" checked> Restaurantes</label>
+    <label><input type="checkbox" class="menuCheck" value="viajes" checked> Viajes</label>
+
+    <button onclick="createRoom()">Continuar</button>
+    <button onclick="showRoomStart()">Atrás</button>
+  </div>
+
+  <div id="joinRoomBox" style="display:none">
+    <h2>Unirte a sala</h2>
+    <input id="joinCode" maxlength="6" placeholder="Código de 6 cifras">
+    <button onclick="joinRoom()">Entrar a la sala</button>
+    <button onclick="showRoomStart()">Atrás</button>
+  </div>
+
+  <div id="inviteBox" style="display:none">
+    <h2>Sala creada</h2>
+    <p>Código de acceso</p>
+    <h1 id="createdRoomCode"></h1>
+    <input id="createdInviteLink" readonly>
+    <button onclick="copyInviteLink()">Copiar invitación</button>
+    <button onclick="continueToLogin()">Continuar</button>
+  </div>
+</div>
+
+<div id="auth" style="display:none">
+  <h2>Iniciar sesión</h2>
+  <input id="nameInput" placeholder="Usuario">
+  <input id="passInput" type="password" placeholder="Contraseña">
+  <input id="photoInput" type="file" accept="image/*">
+  <button onclick="login()">Entrar</button>
+  <button onclick="register()">Crear cuenta</button>
 </div>
 
 <div id="app" style="display:none">
@@ -731,6 +848,16 @@ let selectedStars=0;
 let currentMonth=new Date().getMonth();
 let currentYear=new Date().getFullYear();
 let lastProgressByUser = {};
+
+let roomCode = null;
+let roomUnsubscribe = null;
+
+const AVAILABLE_MENUS = {
+  objetivos: "🎯 Objetivos",
+  planes: "📅 Calendario",
+  restaurantes: "🍽️ Restaurantes",
+  viajes: "🌍 Viajes"
+};
 
 let data={
 users:{},
@@ -779,22 +906,39 @@ reader.readAsDataURL(file);
 });
 }
 
+function normalizeData(){
+  if(!data.roomName) data.roomName = "Nuestra App";
+  if(!data.enabledMenus) data.enabledMenus = ["objetivos","planes","restaurantes","viajes"];
+  if(!data.users) data.users = {};
+  if(!data.planes) data.planes = [];
+  if(!data.restaurantes) data.restaurantes = [];
+  if(!data.viajes) data.viajes = [];
+
+  Object.values(data.users).forEach(u=>{
+    if(!u.objetivos) u.objetivos = [];
+  });
+}
 function loadData(){
-db.collection("app").doc("data").onSnapshot(doc=>{
-if(doc.exists){
-data=doc.data();
+  if(!roomCode) return;
 
-if(!data.restaurantes)data.restaurantes=[];
-if(!data.planes)data.planes=[];
-if(!data.viajes)data.viajes=[];
-if(!data.users)data.users={};
+  if(roomUnsubscribe) roomUnsubscribe();
 
-refreshUI();
+  roomUnsubscribe = db.collection("rooms").doc(roomCode).onSnapshot(doc=>{
+    if(doc.exists){
+      data = doc.data();
+      normalizeData();
 
+      roomTitle.innerText = data.roomName || "Nuestra App";
+      renderMainMenu();
+      refreshUI();
+    }
+  });
 }
-});
-}
 
+async function saveData(){
+  normalizeData();
+  await db.collection("rooms").doc(roomCode).set(data);
+}
 function refreshUI(){
 
 if(currentSection==="objetivos") renderObjetivos();
@@ -805,10 +949,8 @@ else if(currentSection==="viajes") renderViajes();
 
 else if(currentSection==="planes") renderPlanes();
 
-}
+else if(currentSection==="settings") renderSettings();
 
-async function saveData(){
-await db.collection("app").doc("data").set(data);
 }
 
 async function register(){
@@ -822,9 +964,10 @@ return;
 }
 
 // 🔴 COMPROBAR SI YA EXISTE
-const doc = await db.collection("app").doc("data").get();
+const doc = await db.collection("rooms").doc(roomCode).get();
 if(doc.exists){
 data = doc.data();
+normalizeData();
 }
 
 if(data.users && data.users[name]){
@@ -848,6 +991,7 @@ await saveData();
 
 user = {name};
 localStorage.setItem("user", JSON.stringify(user));
+localStorage.setItem("roomCode", roomCode);
 startApp();
 }
 
@@ -861,7 +1005,7 @@ async function login(){
     return;
   }
 
-  const doc = await db.collection("app").doc("data").get();
+  const doc = await db.collection("rooms").doc(roomCode).get();
 
   if(!doc.exists){
     alert("No hay datos");
@@ -869,6 +1013,7 @@ async function login(){
   }
 
   data = doc.data();
+  normalizeData();
 
   if(!data.users || !data.users[name]){
     alert("Usuario no existe");
@@ -882,18 +1027,21 @@ async function login(){
 
   user = {name};
   localStorage.setItem("user", JSON.stringify(user));
+localStorage.setItem("roomCode", roomCode);
 
   startApp();
 }
 
 function startApp(){
-auth.style.display="none";
-app.style.display="block";
-document.querySelector(".menu-btn").style.display="block";
-loadData();
+  roomGate.style.display = "none";
+  auth.style.display = "none";
+  app.style.display = "block";
+  document.querySelector(".menu-btn").style.display = "block";
+  loadData();
 }
 
 function goBack(){
+currentSection = "";
 content.innerHTML="";
 mainMenu.style.display="grid";
 }
@@ -1613,20 +1761,7 @@ else showSection(section);
 function closeModal(){
 document.querySelectorAll(".modal").forEach(x=>x.remove());
 }
-changePhotoInput.addEventListener("change", async e=>{
-const file=e.target.files[0];
-if(!file || !user) return;
 
-const foto=await compressImage(file,320,.85);
-
-data.users[user.name].photo=foto;
-await saveData();
-
-menuPhoto.src=foto;
-
-if(content.innerHTML.includes("Restaurantes")) renderRestaurantes();
-else if(content.innerHTML.includes("completado")) renderObjetivos();
-});
 
 function openRestaurantView(i){
 const r=data.restaurantes[i];
@@ -1901,12 +2036,34 @@ renderPlanes();
 }
 
 document.addEventListener("DOMContentLoaded",()=>{
-document.querySelector(".menu-btn").style.display="none";
-const saved=localStorage.getItem("user");
-if(saved){
-user=JSON.parse(saved);
-startApp();
-}
+  document.querySelector(".menu-btn").style.display = "none";
+
+  const params = new URLSearchParams(location.search);
+  const codeFromLink = params.get("sala");
+  const savedRoom = localStorage.getItem("roomCode");
+  const savedUser = localStorage.getItem("user");
+
+  if(codeFromLink){
+    roomCode = codeFromLink;
+    localStorage.setItem("roomCode", roomCode);
+    continueToLogin();
+    return;
+  }
+
+  if(savedRoom && savedUser){
+    roomCode = savedRoom;
+    user = JSON.parse(savedUser);
+    startApp();
+    return;
+  }
+
+  if(savedRoom){
+    roomCode = savedRoom;
+    continueToLogin();
+    return;
+  }
+
+  roomGate.style.display = "block";
 });
 
 function animateProgressBars(){
@@ -1946,6 +2103,266 @@ function animateProgressBars(){
 
     step();
   });
+}
+
+function showRoomStart(){
+  roomStart.style.display = "block";
+  createRoomBox.style.display = "none";
+  joinRoomBox.style.display = "none";
+  inviteBox.style.display = "none";
+}
+
+function showCreateRoom(){
+  roomStart.style.display = "none";
+  createRoomBox.style.display = "block";
+  joinRoomBox.style.display = "none";
+  inviteBox.style.display = "none";
+}
+
+function showJoinRoom(){
+  roomStart.style.display = "none";
+  createRoomBox.style.display = "none";
+  joinRoomBox.style.display = "block";
+  inviteBox.style.display = "none";
+}
+
+function getInviteLink(code = roomCode){
+  const url = new URL(location.href);
+  url.searchParams.set("sala", code);
+  return url.toString();
+}
+
+async function generateRoomCode(){
+  let code;
+  let exists = true;
+
+  while(exists){
+    code = String(Math.floor(100000 + Math.random() * 900000));
+    const doc = await db.collection("rooms").doc(code).get();
+    exists = doc.exists;
+  }
+
+  return code;
+}
+
+async function createRoom(){
+  const name = newRoomName.value.trim();
+
+  if(!name){
+    alert("Ponle un nombre a la sala");
+    return;
+  }
+
+  const enabledMenus = [...document.querySelectorAll(".menuCheck:checked")].map(x=>x.value);
+
+  if(!enabledMenus.length){
+    alert("Elige al menos un menú");
+    return;
+  }
+
+  roomCode = await generateRoomCode();
+
+  data = {
+    roomName:name,
+    enabledMenus,
+    users:{},
+    planes:[],
+    restaurantes:[],
+    viajes:[]
+  };
+
+  await db.collection("rooms").doc(roomCode).set(data);
+
+  localStorage.setItem("roomCode", roomCode);
+
+  createdRoomCode.innerText = roomCode;
+  createdInviteLink.value = getInviteLink(roomCode);
+
+  roomStart.style.display = "none";
+  createRoomBox.style.display = "none";
+  joinRoomBox.style.display = "none";
+  inviteBox.style.display = "block";
+}
+
+async function joinRoom(){
+  const code = joinCode.value.trim();
+
+  if(!/^\d{6}$/.test(code)){
+    alert("Introduce un código válido de 6 cifras");
+    return;
+  }
+
+  const doc = await db.collection("rooms").doc(code).get();
+
+  if(!doc.exists){
+    alert("No existe ninguna sala con ese código");
+    return;
+  }
+
+  roomCode = code;
+  localStorage.setItem("roomCode", roomCode);
+  continueToLogin();
+}
+
+function continueToLogin(){
+  roomGate.style.display = "none";
+  auth.style.display = "block";
+  loadData();
+}
+
+function copyInviteLink(){
+  navigator.clipboard.writeText(createdInviteLink.value);
+  alert("Invitación copiada");
+}
+
+function renderMainMenu(){
+  if(!data.enabledMenus) return;
+
+  mainMenu.innerHTML = data.enabledMenus.map(section=>`
+    <button onclick="showSection('${section}')">${AVAILABLE_MENUS[section]}</button>
+  `).join("");
+}
+
+function openSettings(){
+  closeMenu();
+  mainMenu.style.display = "none";
+  currentSection = "settings";
+  renderSettings();
+}
+
+function renderSettings(){
+  const invite = getInviteLink();
+
+  content.innerHTML = `
+    <button class="back" onclick="goBack()">⬅</button>
+
+    <div class="card settings-card">
+      <div class="settings-layout">
+        <div class="settings-nav">
+          <button onclick="showSettingsTab('profileSettings')">Perfil</button>
+          <button onclick="showSettingsTab('roomSettings')">Sala</button>
+        </div>
+
+        <div class="settings-panel">
+          <div id="profileSettings">
+            <h3>Configuración de perfil</h3>
+            <input id="settingsName" value="${user.name}" placeholder="Nombre">
+            <input id="settingsPhotoInput" type="file" accept="image/*">
+            <button onclick="saveProfileSettings()">Guardar perfil</button>
+          </div>
+
+          <div id="roomSettings" style="display:none">
+            <h3>Configuración de sala</h3>
+            <input id="settingsRoomName" value="${data.roomName || 'Nuestra App'}" placeholder="Nombre de la sala">
+
+            <p>Código de sala</p>
+            <h2>${roomCode}</h2>
+
+            <p>Enlace de invitación</p>
+            <input id="settingsInviteLink" value="${invite}" readonly>
+            <button onclick="navigator.clipboard.writeText(settingsInviteLink.value)">Copiar enlace</button>
+
+            <h3>Miembros</h3>
+            <ul>
+              ${Object.values(data.users).map(u=>`
+                <li>
+                  <img class="small-photo" src="${u.photo || ''}">
+                  <b>${u.name}</b>
+                </li>
+              `).join("")}
+            </ul>
+
+            <h3>Gestión de menús</h3>
+            ${Object.entries(AVAILABLE_MENUS).map(([key,label])=>`
+              <label class="settings-check">
+                <input type="checkbox" class="settingsMenuCheck" value="${key}" ${data.enabledMenus.includes(key) ? "checked" : ""}>
+                ${label}
+              </label>
+            `).join("")}
+
+            <button onclick="saveRoomSettings()">Guardar sala</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function showSettingsTab(id){
+  profileSettings.style.display = id === "profileSettings" ? "block" : "none";
+  roomSettings.style.display = id === "roomSettings" ? "block" : "none";
+}
+
+async function saveProfileSettings(){
+  const oldName = user.name;
+  const newName = settingsName.value.trim();
+  const file = settingsPhotoInput.files[0];
+
+  if(!newName){
+    alert("El nombre no puede estar vacío");
+    return;
+  }
+
+  if(newName !== oldName && data.users[newName]){
+    alert("Ese nombre ya existe en la sala");
+    return;
+  }
+
+  let profile = data.users[oldName];
+
+  if(file){
+    profile.photo = await compressImage(file,320,.85);
+  }
+
+if(newName !== oldName){
+  profile.name = newName;
+  data.users[newName] = profile;
+  delete data.users[oldName];
+
+  data.planes.forEach(x=>{ if(x.user === oldName) x.user = newName; });
+  data.restaurantes.forEach(x=>{ if(x.user === oldName) x.user = newName; });
+  data.viajes.forEach(x=>{ if(x.user === oldName) x.user = newName; });
+
+  data.restaurantes.forEach(r=>{
+    if(r.valoraciones){
+      r.valoraciones.forEach(v=>{
+        if(v.user === oldName) v.user = newName;
+      });
+    }
+  });
+
+  data.viajes.forEach(viaje=>{
+    if(viaje.valoraciones){
+      viaje.valoraciones.forEach(v=>{
+        if(v.user === oldName) v.user = newName;
+      });
+    }
+  });
+
+  user.name = newName;
+  localStorage.setItem("user", JSON.stringify(user));
+}
+
+  await saveData();
+  renderSettings();
+}
+
+async function saveRoomSettings(){
+  const selected = [...document.querySelectorAll(".settingsMenuCheck:checked")].map(x=>x.value);
+
+  if(!selected.length){
+    alert("La sala necesita al menos un menú");
+    return;
+  }
+
+  data.roomName = settingsRoomName.value.trim() || "Nuestra App";
+  data.enabledMenus = selected;
+
+  await saveData();
+
+  roomTitle.innerText = data.roomName;
+  renderMainMenu();
+  renderSettings();
 }
 
 </script>
