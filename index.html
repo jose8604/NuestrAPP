@@ -2430,6 +2430,14 @@ function renderSettings(){
   `;
 }
 
+async function getMessagingRegistration(){
+  if(!("serviceWorker" in navigator)){
+    throw new Error("Este navegador no soporta service workers");
+  }
+
+  return await navigator.serviceWorker.register("./firebase-messaging-sw.js");
+}
+
 async function enableNotifications(){
   if(!("Notification" in window)){
     alert("Este navegador no soporta notificaciones");
@@ -2449,9 +2457,12 @@ async function enableNotifications(){
   }
 
   try{
-    const token = await messaging.getToken({
-      vapidKey: VAPID_KEY
-    });
+const registration = await getMessagingRegistration();
+
+const token = await messaging.getToken({
+  vapidKey: VAPID_KEY,
+  serviceWorkerRegistration: registration
+});
 
     if(!token){
       alert("No se pudo activar este dispositivo");
@@ -2473,12 +2484,10 @@ async function enableNotifications(){
     alert("Notificaciones activadas");
     renderSettings();
 
-  }catch(error){
-    console.error(error);
-    alert("Error activando notificaciones. Revisa HTTPS, VAPID key y firebase-messaging-sw.js");
-  }
+}catch(error){
+  console.error(error);
+  alert("Error activando notificaciones: " + error.message);
 }
-
  
 async function disableNotifications(){
   data.users[user.name].notificationsEnabled = false;
