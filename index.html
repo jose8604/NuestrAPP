@@ -2435,7 +2435,28 @@ async function getMessagingRegistration(){
     throw new Error("Este navegador no soporta service workers");
   }
 
-  return await navigator.serviceWorker.register("./firebase-messaging-sw.js");
+  const registration = await navigator.serviceWorker.register("./firebase-messaging-sw.js");
+
+  await navigator.serviceWorker.ready;
+
+  if(!registration.active){
+    await new Promise(resolve=>{
+      const worker = registration.installing || registration.waiting;
+
+      if(!worker){
+        resolve();
+        return;
+      }
+
+      worker.addEventListener("statechange",()=>{
+        if(worker.state === "activated"){
+          resolve();
+        }
+      });
+    });
+  }
+
+  return registration;
 }
 
 async function enableNotifications(){
