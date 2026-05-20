@@ -2488,6 +2488,7 @@ const token = await messaging.getToken({
   console.error(error);
   alert("Error activando notificaciones: " + error.message);
 }
+}
  
 async function disableNotifications(){
   data.users[user.name].notificationsEnabled = false;
