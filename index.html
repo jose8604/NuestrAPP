@@ -962,11 +962,12 @@ button{
 
 <div id="auth" style="display:none">
   <h2>Iniciar sesión</h2>
-  <input id="nameInput" placeholder="Usuario">
-  <input id="passInput" type="password" placeholder="Contraseña">
-  <input id="photoInput" type="file" accept="image/*">
-  <button onclick="login()">Entrar</button>
-  <button onclick="register()">Crear cuenta</button>
+<input id="emailInput" type="email" placeholder="Email">
+<input id="nameInput" placeholder="Nombre visible">
+<input id="passInput" type="password" placeholder="Contraseña">
+<input id="photoInput" type="file" accept="image/*">
+<button onclick="login()">Entrar</button>
+<button onclick="register()">Crear cuenta</button>
 </div>
 
 <div id="app" style="display:none">
@@ -981,6 +982,7 @@ button{
 
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 
 <script>
 const firebaseConfig={
@@ -994,6 +996,7 @@ appId:"1:11964303180:web:28412e809348d20d6af1e9"
 
 firebase.initializeApp(firebaseConfig);
 const db=firebase.firestore();
+const authService = firebase.auth();
 
 let currentSection = "";
 let user=null;
@@ -1110,13 +1113,58 @@ else if(currentSection==="roomSwitcher") renderRoomSwitcher();
 }
 
 async function register(){
-const name = nameInput.value.trim();
-const pass = passInput.value.trim();
-const file = photoInput.files[0];
+  const email = emailInput.value.trim();
+  const name = nameInput.value.trim();
+  const pass = passInput.value.trim();
+  const file = photoInput.files[0];
 
-if(!name || !pass){
-alert("Rellena usuario y contraseña");
-return;
+  if(!email || !name || !pass){
+    alert("Rellena email, nombre y contraseña");
+    return;
+  }
+
+  const credential = await authService.createUserWithEmailAndPassword(email, pass);
+  const authUser = credential.user;
+  const uid = authUser.uid;
+
+  const doc = await db.collection("rooms").doc(roomCode).get();
+
+  if(doc.exists){
+    data = doc.data();
+    normalizeData();
+  }
+
+  const nameExists = Object.values(data.users).some(u=>u.name === name);
+
+  if(nameExists){
+    alert("Ese nombre ya existe en la sala");
+    return;
+  }
+
+  let photo = "";
+  if(file) photo = await compressImage(file);
+
+  data.users[uid] = {
+    uid,
+    name,
+    email,
+    photo,
+    objetivos: [],
+    menuOrder: []
+  };
+
+  await saveData();
+
+  user = {
+    uid,
+    name,
+    email
+  };
+
+  localStorage.setItem("user", JSON.stringify(user));
+  localStorage.setItem("roomCode", roomCode);
+
+  startApp();
 }
 
 // 🔴 COMPROBAR SI YA EXISTE
@@ -1152,14 +1200,44 @@ startApp();
 }
 
 async function login(){
-
-  const name = nameInput.value.trim();
+  const email = emailInput.value.trim();
   const pass = passInput.value.trim();
 
-  if(!name || !pass){
-    alert("Rellena usuario y contraseña");
+  if(!email || !pass){
+    alert("Rellena email y contraseña");
     return;
   }
+
+  const credential = await authService.signInWithEmailAndPassword(email, pass);
+  const authUser = credential.user;
+  const uid = authUser.uid;
+
+  const doc = await db.collection("rooms").doc(roomCode).get();
+
+  if(!doc.exists){
+    alert("No hay datos");
+    return;
+  }
+
+  data = doc.data();
+  normalizeData();
+
+  if(!data.users || !data.users[uid]){
+    alert("Este usuario no pertenece a esta sala. Únete o crea cuenta dentro de la sala.");
+    return;
+  }
+
+  user = {
+    uid,
+    name:data.users[uid].name,
+    email
+  };
+
+  localStorage.setItem("user", JSON.stringify(user));
+  localStorage.setItem("roomCode", roomCode);
+
+  startApp();
+}
 
   const doc = await db.collection("rooms").doc(roomCode).get();
 
