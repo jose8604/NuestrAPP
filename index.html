@@ -924,10 +924,13 @@ button{
 
 <div id="roomGate" class="card gate-card" style="display:none">
   <div id="roomStart">
-    <h2>Entrar a una sala</h2>
-    <button onclick="showCreateRoom()">Crear sala</button>
-    <button onclick="showJoinRoom()">Unirte a sala</button>
-  </div>
+  <h2>Entrar a una sala</h2>
+
+  <div id="myRoomsBox" style="margin:14px 0 18px;"></div>
+
+  <button onclick="showCreateRoom()">Crear sala</button>
+  <button onclick="showJoinRoom()">Unirte a sala</button>
+</div>
 
   <div id="createRoomBox" style="display:none">
     <h2>Crear sala</h2>
@@ -1156,6 +1159,8 @@ if(codeFromLink){
 }
 
 roomGate.style.display = "block";
+showRoomStart();
+renderMyRoomsBox();
 
   }catch(error){
     alert("Error creando cuenta: " + error.message);
@@ -1208,6 +1213,8 @@ if(codeFromLink){
 }
 
 roomGate.style.display = "block";
+showRoomStart();
+renderMyRoomsBox();
 
   }catch(error){
     alert("Error iniciando sesión: " + error.message);
@@ -1289,6 +1296,7 @@ async function enterRoomByCode(code){
   await saveData();
 
   localStorage.setItem("roomCode", roomCode);
+saveRoomToList(roomCode, data.roomName);
   saveRoomToList(roomCode, data.roomName);
 
   startApp();
@@ -2277,6 +2285,8 @@ document.addEventListener("DOMContentLoaded",()=>{
     }
 
     roomGate.style.display = "block";
+showRoomStart();
+renderMyRoomsBox();
   });
 });
 
@@ -2390,6 +2400,7 @@ ensureCurrentUserInRoom();
   await db.collection("rooms").doc(roomCode).set(data);
 
   localStorage.setItem("roomCode", roomCode);
+await rememberRoomForUser(roomCode, data.roomName);
   saveRoomToList(roomCode, data.roomName);
 
   createdRoomCode.innerText = roomCode;
@@ -2425,10 +2436,72 @@ await saveData();
 
 localStorage.setItem("roomCode", roomCode);
 saveRoomToList(roomCode, data.roomName);
+saveRoomToList(roomCode, data.roomName);
 
 ensureCurrentUserInRoom();
 await saveData();
 startApp();
+}
+
+async function rememberRoomForUser(code, name){
+  if(!user || !user.uid || !code) return;
+
+  const roomInfo = {
+    code,
+    name:name || "Sala sin nombre"
+  };
+
+  saveRoomToList(code, roomInfo.name);
+
+  await db.collection("profiles").doc(user.uid).set({
+    rooms: firebase.firestore.FieldValue.arrayUnion(roomInfo)
+  }, {merge:true});
+}
+
+async function getUserRooms(){
+  if(!user || !user.uid) return getSavedRooms();
+
+  const profileDoc = await db.collection("profiles").doc(user.uid).get();
+  const profileRooms = profileDoc.exists ? (profileDoc.data().rooms || []) : [];
+  const localRooms = getSavedRooms();
+
+  const allRooms = [...profileRooms, ...localRooms];
+  const unique = [];
+
+  allRooms.forEach(room=>{
+    if(room && room.code && !unique.some(x=>x.code === room.code)){
+      unique.push(room);
+    }
+  });
+
+  return unique;
+}
+
+async function renderMyRoomsBox(){
+  const box = document.getElementById("myRoomsBox");
+  if(!box) return;
+
+  const rooms = await getUserRooms();
+
+  if(!rooms.length){
+    box.innerHTML = "<p>No tienes salas todavía</p>";
+    return;
+  }
+
+  box.innerHTML = `
+    <div style="text-align:left;">
+      <b>Mis salas</b>
+      ${rooms.map(room=>`
+        <div class="rest-item">
+          <b>${room.name || "Sala sin nombre"}</b><br>
+          <small>Código: ${room.code}</small>
+          <div style="margin-top:10px;">
+            <button onclick="switchRoom('${room.code}')">Entrar</button>
+          </div>
+        </div>
+      `).join("")}
+    </div>
+  `;
 }
 
 function getSavedRooms(){
@@ -2520,7 +2593,7 @@ async function switchRoom(code){
   normalizeData();
 
   localStorage.setItem("roomCode", roomCode);
-  saveRoomToList(roomCode, data.roomName);
+await rememberRoomForUser(roomCode, data.roomName);
 
   currentSection = "";
   content.innerHTML = "";
