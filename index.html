@@ -1040,7 +1040,11 @@ menuPhoto.src=data.users[user.name].photo||"";
 }
 }
 function closeMenu(){dropdown.style.display="none";}
-function logout(){localStorage.removeItem("user");location.reload();}
+async function logout(){
+  await authService.signOut();
+  localStorage.removeItem("user");
+  location.reload();
+}
 
 function compressImage(file,size=320,quality=.85){
 return new Promise(resolve=>{
