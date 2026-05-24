@@ -922,7 +922,7 @@ button{
 </div>
 </header>
 
-<div id="roomGate" class="card gate-card">
+<div id="roomGate" class="card gate-card" style="display:none">
   <div id="roomStart">
     <h2>Entrar a una sala</h2>
     <button onclick="showCreateRoom()">Crear sala</button>
@@ -1034,9 +1034,9 @@ if(savedVersion !== APP_VERSION){
 
 function toggleMenu(){
 dropdown.style.display=dropdown.style.display==="block"?"none":"block";
-if(user && data.users[user.name]){
+if(user && data.users[user.uid]){
 menuUser.innerText=user.name;
-menuPhoto.src=data.users[user.name].photo||"";
+menuPhoto.src=data.users[user.uid].photo||user.photo||"";
 }
 }
 function closeMenu(){dropdown.style.display="none";}
@@ -1130,49 +1130,49 @@ async function register(){
     }
 
     const credential = await authService.createUserWithEmailAndPassword(email, pass);
-    const authUser = credential.user;
-    const uid = authUser.uid;
-
-    const doc = await db.collection("rooms").doc(roomCode).get();
-
-    if(doc.exists){
-      data = doc.data();
-      normalizeData();
-    }
-
-    const nameExists = Object.values(data.users).some(u=>u.name === name);
-
-    if(nameExists){
-      alert("Ese nombre ya existe en la sala");
-      return;
-    }
 
     let photo = "";
     if(file) photo = await compressImage(file);
 
-    data.users[uid] = {
-      uid,
-      name,
+    user = {
+      uid: credential.user.uid,
       email,
-      photo,
-      objetivos: [],
-      menuOrder: []
+      name,
+      photo
     };
 
-    await saveData();
-
-    user = {uid,name,email};
+    await db.collection("profiles").doc(user.uid).set(user);
 
     localStorage.setItem("user", JSON.stringify(user));
-    localStorage.setItem("roomCode", roomCode);
 
-    startApp();
+    roomGate.style.display = "block";
+    auth.style.display = "none";
 
   }catch(error){
     alert("Error creando cuenta: " + error.message);
-    console.error(error);
   }
 }
+
+async function loadProfileFromAuth(authUser){
+  const profileRef = db.collection("profiles").doc(authUser.uid);
+  const profileDoc = await profileRef.get();
+
+  if(profileDoc.exists){
+    user = profileDoc.data();
+  }else{
+    user = {
+      uid: authUser.uid,
+      email: authUser.email,
+      name: authUser.email,
+      photo: ""
+    };
+
+    await profileRef.set(user);
+  }
+
+  localStorage.setItem("user", JSON.stringify(user));
+}
+
 
 
 async function login(){
@@ -1186,41 +1186,15 @@ async function login(){
     }
 
     const credential = await authService.signInWithEmailAndPassword(email, pass);
-    const authUser = credential.user;
-    const uid = authUser.uid;
+    await loadProfileFromAuth(credential.user);
 
-    const doc = await db.collection("rooms").doc(roomCode).get();
-
-    if(!doc.exists){
-      alert("No hay datos");
-      return;
-    }
-
-    data = doc.data();
-    normalizeData();
-
-    if(!data.users || !data.users[uid]){
-      alert("Este usuario no pertenece a esta sala. Crea cuenta dentro de esta sala.");
-      return;
-    }
-
-    user = {
-      uid,
-      name:data.users[uid].name,
-      email
-    };
-
-    localStorage.setItem("user", JSON.stringify(user));
-    localStorage.setItem("roomCode", roomCode);
-
-    startApp();
+    auth.style.display = "none";
+    roomGate.style.display = "block";
 
   }catch(error){
     alert("Error iniciando sesión: " + error.message);
-    console.error(error);
   }
 }
-
 function startApp(){
   roomGate.style.display = "none";
   auth.style.display = "none";
@@ -1263,6 +1237,43 @@ if(section==="viajes"){
 renderViajes();
 return;
 }
+}
+
+function ensureCurrentUserInRoom(){
+  if(!data.users) data.users = {};
+
+  if(!data.users[user.uid]){
+    data.users[user.uid] = {
+      uid:user.uid,
+      name:user.name,
+      email:user.email,
+      photo:user.photo || "",
+      objetivos:[],
+      menuOrder:[]
+    };
+  }
+}
+
+async function enterRoomByCode(code){
+  const doc = await db.collection("rooms").doc(code).get();
+
+  if(!doc.exists){
+    alert("La sala del enlace no existe");
+    roomGate.style.display = "block";
+    return;
+  }
+
+  roomCode = code;
+  data = doc.data();
+  normalizeData();
+  ensureCurrentUserInRoom();
+
+  await saveData();
+
+  localStorage.setItem("roomCode", roomCode);
+  saveRoomToList(roomCode, data.roomName);
+
+  startApp();
 }
 
 /* OBJETIVOS */
@@ -1919,7 +1930,8 @@ const text=newItem.value.trim();
 if(!text)return;
 
 if(section==="objetivos"){
-data.users[user.name].objetivos.push({text,done:false});
+ensureCurrentUserInRoom();
+data.users[user.uid].objetivos.push({text,done:false});
 await saveData();
 renderObjetivos();
 return;
@@ -2228,34 +2240,26 @@ renderPlanes();
 }
 
 document.addEventListener("DOMContentLoaded",()=>{
-  document.querySelector(".menu-btn").style.display = "none";
+  hideAllScreens();
 
-  const params = new URLSearchParams(location.search);
-  const codeFromLink = params.get("sala");
-  const savedRoom = localStorage.getItem("roomCode");
-  const savedUser = localStorage.getItem("user");
+  authService.onAuthStateChanged(async authUser=>{
+    const params = new URLSearchParams(location.search);
+    const codeFromLink = params.get("sala");
 
-  if(codeFromLink){
-    roomCode = codeFromLink;
-    localStorage.setItem("roomCode", roomCode);
-    continueToLogin();
-    return;
-  }
+    if(!authUser){
+      auth.style.display = "block";
+      return;
+    }
 
-  if(savedRoom && savedUser){
-    roomCode = savedRoom;
-    user = JSON.parse(savedUser);
-    startApp();
-    return;
-  }
+    await loadProfileFromAuth(authUser);
 
-  if(savedRoom){
-    roomCode = savedRoom;
-    continueToLogin();
-    return;
-  }
+    if(codeFromLink){
+      await enterRoomByCode(codeFromLink);
+      return;
+    }
 
-  roomGate.style.display = "block";
+    roomGate.style.display = "block";
+  });
 });
 
 function animateProgressBars(){
@@ -2363,6 +2367,8 @@ async function createRoom(){
     viajes:[]
   };
 
+ensureCurrentUserInRoom();
+
   await db.collection("rooms").doc(roomCode).set(data);
 
   localStorage.setItem("roomCode", roomCode);
@@ -2399,7 +2405,9 @@ normalizeData();
 localStorage.setItem("roomCode", roomCode);
 saveRoomToList(roomCode, data.roomName);
 
-continueToLogin();
+ensureCurrentUserInRoom();
+await saveData();
+startApp();
 }
 
 function getSavedRooms(){
@@ -2514,6 +2522,13 @@ function continueToLogin(){
   loadData();
 }
 
+function hideAllScreens(){
+  roomGate.style.display = "none";
+  auth.style.display = "none";
+  app.style.display = "none";
+  document.querySelector(".menu-btn").style.display = "none";
+}
+
 function copyInviteLink(){
   navigator.clipboard.writeText(createdInviteLink.value);
   alert("Invitación copiada");
@@ -2522,9 +2537,8 @@ function copyInviteLink(){
 function getUserMenuOrder(){
   const defaultOrder = Object.keys(AVAILABLE_MENUS);
 
-  if(!user || !data.users[user.name]) return defaultOrder;
-
-  const savedOrder = data.users[user.name].menuOrder || [];
+if(!user || !data.users[user.uid]) return defaultOrder;
+const savedOrder = data.users[user.uid].menuOrder || [];
 
   return [
     ...savedOrder.filter(x=>defaultOrder.includes(x)),
@@ -2656,7 +2670,6 @@ function showSettingsTab(id){
 }
 
 async function saveProfileSettings(){
-  const oldName = user.name;
   const newName = settingsName.value.trim();
   const file = settingsPhotoInput.files[0];
 
@@ -2665,32 +2678,26 @@ async function saveProfileSettings(){
     return;
   }
 
-  if(newName !== oldName && data.users[newName]){
-    alert("Ese nombre ya existe en la sala");
-    return;
-  }
-
-  let profile = data.users[oldName];
+  let photo = user.photo || "";
 
   if(file){
-    profile.photo = await compressImage(file,320,.85);
+    photo = await compressImage(file,320,.85);
   }
 
-if(newName !== oldName){
-  profile.name = newName;
-  data.users[newName] = profile;
-  delete data.users[oldName];
+  user.name = newName;
+  user.photo = photo;
 
-  data.planes.forEach(x=>{ if(x.user === oldName) x.user = newName; });
-  data.restaurantes.forEach(x=>{ if(x.user === oldName) x.user = newName; });
-  data.viajes.forEach(x=>{ if(x.user === oldName) x.user = newName; });
+  await db.collection("profiles").doc(user.uid).set(user);
+  localStorage.setItem("user", JSON.stringify(user));
 
-  data.restaurantes.forEach(r=>{
-    if(r.valoraciones){
-      r.valoraciones.forEach(v=>{
-        if(v.user === oldName) v.user = newName;
-      });
-    }
+  if(data.users[user.uid]){
+    data.users[user.uid].name = newName;
+    data.users[user.uid].photo = photo;
+  }
+
+  await saveData();
+  renderSettings();
+}
   });
 
   data.viajes.forEach(viaje=>{
@@ -2747,15 +2754,18 @@ async function saveRoomSettings(){
   data.roomName = settingsRoomName.value.trim() || "Nuestra App";
   data.enabledMenus = selected;
 
-  if(!data.users[user.name]){
-    data.users[user.name] = {
-      name:user.name,
-      objetivos:[],
-      menuOrder:[]
-    };
-  }
+if(!data.users[user.uid]){
+  data.users[user.uid] = {
+    uid:user.uid,
+    name:user.name,
+    email:user.email,
+    photo:user.photo || "",
+    objetivos:[],
+    menuOrder:[]
+  };
+}
 
-  data.users[user.name].menuOrder = orderedMenus;
+  data.users[user.uid].menuOrder = orderedMenus;
 
   await saveData();
 
