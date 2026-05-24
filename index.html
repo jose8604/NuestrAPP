@@ -1167,37 +1167,6 @@ async function register(){
   startApp();
 }
 
-// 🔴 COMPROBAR SI YA EXISTE
-const doc = await db.collection("rooms").doc(roomCode).get();
-if(doc.exists){
-data = doc.data();
-normalizeData();
-}
-
-if(data.users && data.users[name]){
-alert("Ese usuario ya existe ❌");
-return;
-}
-
-// 📸 FOTO
-let photo = "";
-if(file) photo = await compressImage(file);
-
-// ✅ CREAR USUARIO
-data.users[name] = {
-name,
-password: pass,
-photo,
-objetivos: []
-};
-
-await saveData();
-
-user = {name};
-localStorage.setItem("user", JSON.stringify(user));
-localStorage.setItem("roomCode", roomCode);
-startApp();
-}
 
 async function login(){
   const email = emailInput.value.trim();
@@ -1212,34 +1181,7 @@ async function login(){
   const authUser = credential.user;
   const uid = authUser.uid;
 
-  const doc = await db.collection("rooms").doc(roomCode).get();
-
-  if(!doc.exists){
-    alert("No hay datos");
-    return;
-  }
-
-  data = doc.data();
-  normalizeData();
-
-  if(!data.users || !data.users[uid]){
-    alert("Este usuario no pertenece a esta sala. Únete o crea cuenta dentro de la sala.");
-    return;
-  }
-
-  user = {
-    uid,
-    name:data.users[uid].name,
-    email
-  };
-
-  localStorage.setItem("user", JSON.stringify(user));
-  localStorage.setItem("roomCode", roomCode);
-
-  startApp();
-}
-
-  const doc = await db.collection("rooms").doc(roomCode).get();
+    const doc = await db.collection("rooms").doc(roomCode).get();
 
   if(!doc.exists){
     alert("No hay datos");
