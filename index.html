@@ -956,7 +956,7 @@ button{
     <h1 id="createdRoomCode"></h1>
     <input id="createdInviteLink" readonly>
     <button onclick="copyInviteLink()">Copiar invitación</button>
-    <button onclick="continueToLogin()">Continuar</button>
+    <button onclick="startApp()">Continuar</button>
   </div>
 </div>
 
@@ -1145,8 +1145,17 @@ async function register(){
 
     localStorage.setItem("user", JSON.stringify(user));
 
-    roomGate.style.display = "block";
     auth.style.display = "none";
+
+const params = new URLSearchParams(location.search);
+const codeFromLink = params.get("sala");
+
+if(codeFromLink){
+  await enterRoomByCode(codeFromLink);
+  return;
+}
+
+roomGate.style.display = "block";
 
   }catch(error){
     alert("Error creando cuenta: " + error.message);
@@ -1189,7 +1198,16 @@ async function login(){
     await loadProfileFromAuth(credential.user);
 
     auth.style.display = "none";
-    roomGate.style.display = "block";
+
+const params = new URLSearchParams(location.search);
+const codeFromLink = params.get("sala");
+
+if(codeFromLink){
+  await enterRoomByCode(codeFromLink);
+  return;
+}
+
+roomGate.style.display = "block";
 
   }catch(error){
     alert("Error iniciando sesión: " + error.message);
@@ -1281,7 +1299,7 @@ function renderObjetivos(){
 content.innerHTML=`<button class="back" onclick="goBack()">⬅</button>
 <div class="card">
 <div class="users-grid">
-${Object.values(data.users).map(u=>{
+${Object.entries(data.users).map(([uid,u])=>{
 const total=u.objetivos.length;
 const done=u.objetivos.filter(x=>x.done).length;
 const percent=total?(done/total)*100:0;
@@ -1298,8 +1316,8 @@ ${u.objetivos.map((o,i)=>`
 <li class="${o.done?'done':''}">
 ${o.text}
 <span class="obj-actions">
-<button onclick="toggleObjetivo('${u.name}',${i})">✔</button>
-<button onclick="removeObjetivo('${u.name}',${i})">❌</button>
+<button onclick="toggleObjetivo('${uid}',${i})">✔</button>
+<button onclick="removeObjetivo('${uid}',${i})">❌</button>
 </span>
 </li>`).join("")}
 </ul>
@@ -1942,16 +1960,16 @@ await saveData();
 showSection(section);
 }
 
-function toggleObjetivo(name,i){
-data.users[name].objetivos[i].done=!data.users[name].objetivos[i].done;
-saveData();
-renderObjetivos();
+function toggleObjetivo(uid,i){
+  data.users[uid].objetivos[i].done = !data.users[uid].objetivos[i].done;
+  saveData();
+  renderObjetivos();
 }
 
-function removeObjetivo(name,i){
-data.users[name].objetivos.splice(i,1);
-saveData();
-renderObjetivos();
+function removeObjetivo(uid,i){
+  data.users[uid].objetivos.splice(i,1);
+  saveData();
+  renderObjetivos();
 }
 
 function removeItem(section,i){
@@ -2402,6 +2420,9 @@ async function joinRoom(){
 data = doc.data();
 normalizeData();
 
+ensureCurrentUserInRoom();
+await saveData();
+
 localStorage.setItem("roomCode", roomCode);
 saveRoomToList(roomCode, data.roomName);
 
@@ -2514,12 +2535,6 @@ function removeSavedRoom(code){
   let rooms = getSavedRooms().filter(r=>r.code !== code);
   localStorage.setItem("savedRooms", JSON.stringify(rooms));
   renderRoomSwitcher();
-}
-
-function continueToLogin(){
-  roomGate.style.display = "none";
-  auth.style.display = "block";
-  loadData();
 }
 
 function hideAllScreens(){
@@ -2698,24 +2713,7 @@ async function saveProfileSettings(){
   await saveData();
   renderSettings();
 }
-  });
-
-  data.viajes.forEach(viaje=>{
-    if(viaje.valoraciones){
-      viaje.valoraciones.forEach(v=>{
-        if(v.user === oldName) v.user = newName;
-      });
-    }
-  });
-
-  user.name = newName;
-  localStorage.setItem("user", JSON.stringify(user));
-}
-
-  await saveData();
-  renderSettings();
-}
-
+  
 function showSuccessOverlay(text="Guardado"){
   document.querySelectorAll(".success-overlay").forEach(x=>x.remove());
 
