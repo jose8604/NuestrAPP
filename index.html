@@ -1295,9 +1295,8 @@ async function enterRoomByCode(code){
 
   await saveData();
 
-  localStorage.setItem("roomCode", roomCode);
-saveRoomToList(roomCode, data.roomName);
-  saveRoomToList(roomCode, data.roomName);
+localStorage.setItem("roomCode", roomCode);
+await rememberRoomForUser(roomCode, data.roomName);
 
   startApp();
 }
@@ -2399,9 +2398,8 @@ ensureCurrentUserInRoom();
 
   await db.collection("rooms").doc(roomCode).set(data);
 
-  localStorage.setItem("roomCode", roomCode);
+localStorage.setItem("roomCode", roomCode);
 await rememberRoomForUser(roomCode, data.roomName);
-  saveRoomToList(roomCode, data.roomName);
 
   createdRoomCode.innerText = roomCode;
   createdInviteLink.value = getInviteLink(roomCode);
@@ -2434,14 +2432,13 @@ normalizeData();
 ensureCurrentUserInRoom();
 await saveData();
 
-localStorage.setItem("roomCode", roomCode);
-saveRoomToList(roomCode, data.roomName);
-saveRoomToList(roomCode, data.roomName);
-
 ensureCurrentUserInRoom();
 await saveData();
-startApp();
-}
+
+localStorage.setItem("roomCode", roomCode);
+await rememberRoomForUser(roomCode, data.roomName);
+
+startApp();}
 
 async function rememberRoomForUser(code, name){
   if(!user || !user.uid || !code) return;
@@ -2592,8 +2589,11 @@ async function switchRoom(code){
   data = doc.data();
   normalizeData();
 
+  ensureCurrentUserInRoom();
+  await saveData();
+
   localStorage.setItem("roomCode", roomCode);
-await rememberRoomForUser(roomCode, data.roomName);
+  await rememberRoomForUser(roomCode, data.roomName);
 
   currentSection = "";
   content.innerHTML = "";
@@ -2601,7 +2601,8 @@ await rememberRoomForUser(roomCode, data.roomName);
 
   roomTitle.innerText = data.roomName || "Nuestra App";
   renderMainMenu();
-  loadData();
+
+  startApp();
 }
 
 function removeSavedRoom(code){
