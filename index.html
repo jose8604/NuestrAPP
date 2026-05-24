@@ -1114,99 +1114,107 @@ else if(currentSection==="roomSwitcher") renderRoomSwitcher();
 }
 
 async function register(){
-  const email = emailInput.value.trim();
-  const name = nameInput.value.trim();
-  const pass = passInput.value.trim();
-  const file = photoInput.files[0];
+  try{
+    const email = emailInput.value.trim();
+    const name = nameInput.value.trim();
+    const pass = passInput.value.trim();
+    const file = photoInput.files[0];
 
-  if(!email || !name || !pass){
-    alert("Rellena email, nombre y contraseña");
-    return;
+    if(!email || !name || !pass){
+      alert("Rellena email, nombre y contraseña");
+      return;
+    }
+
+    const credential = await authService.createUserWithEmailAndPassword(email, pass);
+    const authUser = credential.user;
+    const uid = authUser.uid;
+
+    const doc = await db.collection("rooms").doc(roomCode).get();
+
+    if(doc.exists){
+      data = doc.data();
+      normalizeData();
+    }
+
+    const nameExists = Object.values(data.users).some(u=>u.name === name);
+
+    if(nameExists){
+      alert("Ese nombre ya existe en la sala");
+      return;
+    }
+
+    let photo = "";
+    if(file) photo = await compressImage(file);
+
+    data.users[uid] = {
+      uid,
+      name,
+      email,
+      photo,
+      objetivos: [],
+      menuOrder: []
+    };
+
+    await saveData();
+
+    user = {uid,name,email};
+
+    localStorage.setItem("user", JSON.stringify(user));
+    localStorage.setItem("roomCode", roomCode);
+
+    startApp();
+
+  }catch(error){
+    alert("Error creando cuenta: " + error.message);
+    console.error(error);
   }
-
-  const credential = await authService.createUserWithEmailAndPassword(email, pass);
-  const authUser = credential.user;
-  const uid = authUser.uid;
-
-  const doc = await db.collection("rooms").doc(roomCode).get();
-
-  if(doc.exists){
-    data = doc.data();
-    normalizeData();
-  }
-
-  const nameExists = Object.values(data.users).some(u=>u.name === name);
-
-  if(nameExists){
-    alert("Ese nombre ya existe en la sala");
-    return;
-  }
-
-  let photo = "";
-  if(file) photo = await compressImage(file);
-
-  data.users[uid] = {
-    uid,
-    name,
-    email,
-    photo,
-    objetivos: [],
-    menuOrder: []
-  };
-
-  await saveData();
-
-  user = {
-    uid,
-    name,
-    email
-  };
-
-  localStorage.setItem("user", JSON.stringify(user));
-  localStorage.setItem("roomCode", roomCode);
-
-  startApp();
 }
 
 
 async function login(){
-  const email = emailInput.value.trim();
-  const pass = passInput.value.trim();
+  try{
+    const email = emailInput.value.trim();
+    const pass = passInput.value.trim();
 
-  if(!email || !pass){
-    alert("Rellena email y contraseña");
-    return;
-  }
+    if(!email || !pass){
+      alert("Rellena email y contraseña");
+      return;
+    }
 
-  const credential = await authService.signInWithEmailAndPassword(email, pass);
-  const authUser = credential.user;
-  const uid = authUser.uid;
+    const credential = await authService.signInWithEmailAndPassword(email, pass);
+    const authUser = credential.user;
+    const uid = authUser.uid;
 
     const doc = await db.collection("rooms").doc(roomCode).get();
 
-  if(!doc.exists){
-    alert("No hay datos");
-    return;
+    if(!doc.exists){
+      alert("No hay datos");
+      return;
+    }
+
+    data = doc.data();
+    normalizeData();
+
+    if(!data.users || !data.users[uid]){
+      alert("Este usuario no pertenece a esta sala. Crea cuenta dentro de esta sala.");
+      return;
+    }
+
+    user = {
+      uid,
+      name:data.users[uid].name,
+      email
+    };
+
+    localStorage.setItem("user", JSON.stringify(user));
+    localStorage.setItem("roomCode", roomCode);
+
+    startApp();
+
+  }catch(error){
+    alert("Error iniciando sesión: " + error.message);
+    console.error(error);
   }
-
-  data = doc.data();
-  normalizeData();
-
-  if(!data.users || !data.users[name]){
-    alert("Usuario no existe");
-    return;
-  }
-
-  if(data.users[name].password !== pass){
-    alert("Contraseña incorrecta");
-    return;
-  }
-
-  user = {name};
-  localStorage.setItem("user", JSON.stringify(user));
-localStorage.setItem("roomCode", roomCode);
-
-  startApp();
 }
 
 function startApp(){
