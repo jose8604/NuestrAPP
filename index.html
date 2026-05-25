@@ -2542,7 +2542,7 @@ function renderRoomSwitcher(){
 
             <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
               <button onclick="switchRoom('${r.code}')">Entrar</button>
-              <button onclick="removeSavedRoom('${r.code}')">Quitar</button>
+              <button onclick="confirmLeaveRoom('${r.code}')">Salir</button>
             </div>
           </div>
         `).join("") : "<p>No tienes salas guardadas todavía</p>"}
@@ -2605,9 +2605,80 @@ async function switchRoom(code){
   startApp();
 }
 
-function removeSavedRoom(code){
+async function confirmLeaveRoom(code){
+  const ok = confirm("¿Seguro que quieres abandonar esta sala? Se eliminará tu usuario de la sala y dejará de aparecer en tu lista.");
+
+  if(!ok){
+    renderRoomSwitcher();
+    return;
+  }
+
+  await leaveRoom(code);
+}
+
+async function leaveRoom(code){
+  const doc = await db.collection("rooms").doc(code).get();
+
+  if(doc.exists){
+    const roomData = doc.data();
+
+    if(roomData.users && user && user.uid){
+      delete roomData.users[user.uid];
+    }
+
+    if(roomData.restaurantes){
+      roomData.restaurantes.forEach(r=>{
+        if(r.valoraciones){
+          r.valoraciones = r.valoraciones.filter(v=>v.user !== user.name);
+        }
+      });
+    }
+
+    if(roomData.viajes){
+      roomData.viajes.forEach(viaje=>{
+        if(viaje.valoraciones){
+          viaje.valoraciones = viaje.valoraciones.filter(v=>v.user !== user.name);
+        }
+      });
+    }
+
+    await db.collection("rooms").doc(code).set(roomData);
+  }
+
   let rooms = getSavedRooms().filter(r=>r.code !== code);
   localStorage.setItem("savedRooms", JSON.stringify(rooms));
+
+  if(user && user.uid){
+    const profileRef = db.collection("profiles").doc(user.uid);
+    const profileDoc = await profileRef.get();
+
+    if(profileDoc.exists){
+      const profileData = profileDoc.data();
+      const updatedRooms = (profileData.rooms || []).filter(r=>r.code !== code);
+
+      await profileRef.set({
+        rooms: updatedRooms
+      }, {merge:true});
+    }
+  }
+
+  if(roomCode === code){
+    localStorage.removeItem("roomCode");
+    roomCode = null;
+    data = {
+      users:{},
+      planes:[],
+      restaurantes:[],
+      viajes:[]
+    };
+
+    app.style.display = "none";
+    roomGate.style.display = "block";
+    showRoomStart();
+    await renderMyRoomsBox();
+    return;
+  }
+
   renderRoomSwitcher();
 }
 
