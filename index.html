@@ -1232,9 +1232,10 @@ if(roomCode && data.roomName){
 }
 
 function goBack(){
-currentSection = "";
-content.innerHTML="";
-mainMenu.style.display="grid";
+  currentSection = "";
+  content.innerHTML="";
+  mainMenu.style.display="grid";
+  setHeaderTitle(data.roomName || "Nuestra App");
 }
 
 function showSection(section){
@@ -1242,6 +1243,7 @@ closeMenu();
 mainMenu.style.display="none";
 
 currentSection = section;
+setHeaderTitle(AVAILABLE_MENUS[section]);
 
 if(section==="objetivos"){
 renderObjetivos();
@@ -2522,6 +2524,7 @@ function openRoomSwitcher(){
   closeMenu();
   mainMenu.style.display = "none";
   currentSection = "roomSwitcher";
+  setHeaderTitle("Cambiar sala");
   renderRoomSwitcher();
 }
 
@@ -2713,6 +2716,10 @@ function getVisibleMenusForUser(){
   return order.filter(x=>enabled.includes(x));
 }
 
+function setHeaderTitle(title){
+  roomTitle.innerText = title || data.roomName || "Nuestra App";
+}
+
 function renderMainMenu(){
   const menus = getVisibleMenusForUser();
 
@@ -2725,6 +2732,7 @@ function openSettings(){
   closeMenu();
   mainMenu.style.display = "none";
   currentSection = "settings";
+  setHeaderTitle("Configuración");
   renderSettings();
 }
 
