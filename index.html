@@ -900,6 +900,17 @@ button{
   to{transform:scale(1);}
 }
 
+.menu-order-item,
+.drag-handle{
+  user-select:none;
+  -webkit-user-select:none;
+  -webkit-touch-callout:none;
+}
+
+.drag-handle{
+  touch-action:none;
+}
+
 </style>
 </head>
 
@@ -2781,7 +2792,7 @@ function renderSettings(){
             <h3>Gestión de menús</h3>
 <div id="menuOrderList" class="menu-order-list">
   ${getUserMenuOrder().map(key=>`
-    <div class="menu-order-item" draggable="true" data-menu="${key}">
+    <div class="menu-order-item" data-menu="${key}">
       <label class="settings-check">
         <input type="checkbox" class="settingsMenuCheck" value="${key}" ${data.enabledMenus.includes(key) ? "checked" : ""}>
         <span>${AVAILABLE_MENUS[key]}</span>
@@ -2806,30 +2817,71 @@ function setupMenuDrag(){
   if(!list) return;
 
   let draggedItem = null;
+  let activePointerId = null;
 
-  list.querySelectorAll(".menu-order-item").forEach(item=>{
-    item.addEventListener("dragstart",()=>{
-      draggedItem = item;
-      item.classList.add("dragging");
-    });
-
-    item.addEventListener("dragend",()=>{
-      item.classList.remove("dragging");
-      draggedItem = null;
-    });
-
-    item.addEventListener("dragover",e=>{
+  list.querySelectorAll(".drag-handle").forEach(handle=>{
+    handle.addEventListener("pointerdown", e=>{
       e.preventDefault();
 
-      const target = e.currentTarget;
-      if(!draggedItem || draggedItem === target) return;
+      draggedItem = handle.closest(".menu-order-item");
+      activePointerId = e.pointerId;
 
-      const rect = target.getBoundingClientRect();
-      const after = e.clientY > rect.top + rect.height / 2;
+      draggedItem.classList.add("dragging");
+      handle.setPointerCapture(activePointerId);
 
-      list.insertBefore(draggedItem, after ? target.nextSibling : target);
+      document.addEventListener("pointermove", onPointerMove, {passive:false});
+      document.addEventListener("pointerup", onPointerUp);
+      document.addEventListener("pointercancel", onPointerUp);
     });
   });
+
+  function onPointerMove(e){
+    if(!draggedItem) return;
+
+    e.preventDefault();
+
+    const afterElement = getDragAfterElement(list, e.clientY);
+
+    if(afterElement == null){
+      list.appendChild(draggedItem);
+    }else{
+      list.insertBefore(draggedItem, afterElement);
+    }
+  }
+
+  function onPointerUp(){
+    if(draggedItem){
+      draggedItem.classList.remove("dragging");
+    }
+
+    draggedItem = null;
+    activePointerId = null;
+
+    document.removeEventListener("pointermove", onPointerMove);
+    document.removeEventListener("pointerup", onPointerUp);
+    document.removeEventListener("pointercancel", onPointerUp);
+  }
+}
+
+function getDragAfterElement(container, y){
+  const draggableElements = [...container.querySelectorAll(".menu-order-item:not(.dragging)")];
+
+  return draggableElements.reduce((closest, child)=>{
+    const box = child.getBoundingClientRect();
+    const offset = y - box.top - box.height / 2;
+
+    if(offset < 0 && offset > closest.offset){
+      return {
+        offset,
+        element:child
+      };
+    }
+
+    return closest;
+  }, {
+    offset:Number.NEGATIVE_INFINITY,
+    element:null
+  }).element;
 }
 
 function showSettingsTab(id){
