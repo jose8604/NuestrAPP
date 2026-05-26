@@ -2674,17 +2674,18 @@ async function createRoom(){
 
   roomCode = await generateRoomCode();
 
-  data = {
-    roomName:name,
-    enabledMenus,
-    users:{},
-    planes:[],
-    restaurantes:[],
-    viajes:[]
-    gym:{
-        rutinas:[],
-        registros:[]
-  };
+ data = {
+  roomName:name,
+  enabledMenus,
+  users:{},
+  planes:[],
+  restaurantes:[],
+  viajes:[],
+  gym:{
+    rutinas:[],
+    registros:[]
+  }
+};
 
 ensureCurrentUserInRoom();
 
@@ -2956,15 +2957,16 @@ async function leaveRoom(code){
   if(roomCode === code){
     localStorage.removeItem("roomCode");
     roomCode = null;
-    data = {
-      users:{},
-      planes:[],
-      restaurantes:[],
-      viajes:[]
-      gym:{
-        rutinas:[],
-        registros:[]
-    };
+data = {
+  users:{},
+  planes:[],
+  restaurantes:[],
+  viajes:[],
+  gym:{
+    rutinas:[],
+    registros:[]
+  }
+};
 
     app.style.display = "none";
     roomGate.style.display = "block";
