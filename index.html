@@ -991,6 +991,7 @@ button{
 <button onclick="showSection('planes')">📅 Calendario</button>
 <button onclick="showSection('restaurantes')">🍽️ Restaurantes</button>
 <button onclick="showSection('viajes')">🌍 Viajes</button>
+<button onclick="showSection('gym')">🏋️ GYM</button>
 </div>
 <div id="content"></div>
 </div>
@@ -2723,8 +2724,6 @@ normalizeData();
 ensureCurrentUserInRoom();
 await saveData();
 
-ensureCurrentUserInRoom();
-await saveData();
 
 localStorage.setItem("roomCode", roomCode);
 await rememberRoomForUser(roomCode, data.roomName);
@@ -2962,6 +2961,9 @@ async function leaveRoom(code){
       planes:[],
       restaurantes:[],
       viajes:[]
+      gym:{
+        rutinas:[],
+        registros:[]
     };
 
     app.style.display = "none";
