@@ -952,6 +952,7 @@ button{
     <label><input type="checkbox" class="menuCheck" value="planes" checked> Calendario</label>
     <label><input type="checkbox" class="menuCheck" value="restaurantes" checked> Restaurantes</label>
     <label><input type="checkbox" class="menuCheck" value="viajes" checked> Viajes</label>
+    <label><input type="checkbox" class="menuCheck" value="gym" checked> GYM</label>
 
     <button onclick="createRoom()">Continuar</button>
     <button onclick="showRoomStart()">Atrás</button>
@@ -1027,7 +1028,8 @@ const AVAILABLE_MENUS = {
   objetivos: "🎯 Objetivos",
   planes: "📅 Calendario",
   restaurantes: "🍽️ Restaurantes",
-  viajes: "🌍 Viajes"
+  viajes: "🌍 Viajes",
+  gym: "🏋️ GYM"
 };
 
 let data={
@@ -1083,11 +1085,16 @@ reader.readAsDataURL(file);
 
 function normalizeData(){
   if(!data.roomName) data.roomName = "Nuestra App";
-  if(!data.enabledMenus) data.enabledMenus = ["objetivos","planes","restaurantes","viajes"];
+  if(!data.enabledMenus) data.enabledMenus = ["objetivos","planes","restaurantes","viajes","gym"];
   if(!data.users) data.users = {};
   if(!data.planes) data.planes = [];
   if(!data.restaurantes) data.restaurantes = [];
   if(!data.viajes) data.viajes = [];
+  if(!data.gym) data.gym = {rutinas:[], registros:[]};
+  if(!data.gym.rutinas) data.gym.rutinas = [];
+  if(!data.gym.registros) data.gym.registros = [];
+
+if(!data.enabledMenus.includes("gym")) data.enabledMenus.push("gym");
 
 Object.values(data.users).forEach(u=>{
   if(!u.objetivos) u.objetivos = [];
@@ -1128,6 +1135,8 @@ else if(currentSection==="planes") renderPlanes();
 else if(currentSection==="settings") renderSettings();
 
 else if(currentSection==="roomSwitcher") renderRoomSwitcher();
+
+else if(currentSection==="gym") renderGym();
 
 }
 
@@ -1274,6 +1283,11 @@ return;
 if(section==="viajes"){
 renderViajes();
 return;
+}
+
+if(section==="gym"){
+  renderGym();
+  return;
 }
 }
 
@@ -1962,6 +1976,267 @@ closeModal();
 renderViajes();
 }
 
+let gymOpenRoutines = {};
+let gymDraftRoutine = null;
+
+function renderGym(){
+  const rutinas = (data.gym?.rutinas || []).filter(r=>r.userUid === user.uid);
+
+  content.innerHTML = `
+    <button class="back" onclick="goBack()">⬅</button>
+
+    <div class="card">
+      <button onclick="openCreateGymRoutine()">Crear Rutina</button>
+
+      <h3 style="text-align:left;margin-top:24px;">Mis rutinas</h3>
+
+      <div style="text-align:left;">
+        ${rutinas.length ? rutinas.map((rutina)=>{
+          const originalIndex = data.gym.rutinas.indexOf(rutina);
+          const open = gymOpenRoutines[originalIndex];
+
+          return `
+            <div class="rest-item">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <button class="icon-btn" onclick="toggleGymRoutine(${originalIndex})">
+                  ${open ? "▼" : "▶"}
+                </button>
+                <b style="flex:1;">${rutina.title}</b>
+              </div>
+
+              ${open ? `
+                <div style="margin-top:12px;">
+                  ${rutina.days.map(day=>`
+                    <div style="margin:12px 0;padding:12px;border-radius:14px;background:#fffaf0;border:1px solid var(--line);">
+                      <b>${day.name || "Día sin nombre"}</b>
+                      <ul style="padding:0;margin:10px 0 0;">
+                        ${day.exercises.map(ex=>`
+                          <li>${ex}</li>
+                        `).join("")}
+                      </ul>
+                    </div>
+                  `).join("")}
+
+                  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">
+                    <button onclick="openGymRegister(${originalIndex})">Registro</button>
+                    <button onclick="emptyGymButton()">Pendiente</button>
+                  </div>
+                </div>
+              ` : ""}
+            </div>
+          `;
+        }).join("") : "<p>No tienes rutinas creadas todavía</p>"}
+      </div>
+    </div>
+  `;
+}
+
+function toggleGymRoutine(index){
+  gymOpenRoutines[index] = !gymOpenRoutines[index];
+  renderGym();
+}
+
+function openCreateGymRoutine(){
+  gymDraftRoutine = {
+    title:"",
+    days:[]
+  };
+
+  renderCreateGymRoutine();
+}
+
+function renderCreateGymRoutine(){
+  content.innerHTML = `
+    <button class="back" onclick="cancelGymRoutine()">⬅</button>
+
+    <div class="card">
+      <h3>Crear rutina</h3>
+
+      <input id="gymRoutineTitle" value="${gymDraftRoutine.title || ""}" placeholder="Título de la rutina">
+
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:18px;">
+        <h3 style="margin:0;">Días</h3>
+        <button class="plus-btn" onclick="addGymDay()">+</button>
+      </div>
+
+      <div id="gymDaysBox" style="text-align:left;margin-top:14px;">
+        ${gymDraftRoutine.days.map((day,dayIndex)=>`
+          <div class="rest-item">
+            <input value="${day.name || ""}" placeholder="Nombre del día" oninput="gymDraftRoutine.days[${dayIndex}].name=this.value">
+
+            <div>
+              ${day.exercises.map(ex=>`
+                <li>${ex}</li>
+              `).join("")}
+            </div>
+
+            <div style="display:flex;gap:8px;align-items:center;margin-top:10px;">
+              <input id="gymExerciseInput${dayIndex}" placeholder="Añadir ejercicio">
+              <button class="icon-btn" onclick="addGymExercise(${dayIndex})">✔</button>
+            </div>
+          </div>
+        `).join("")}
+      </div>
+
+      <button onclick="saveGymRoutine()">Guardar</button>
+      <button onclick="cancelGymRoutine()">Cancelar</button>
+    </div>
+  `;
+}
+
+function addGymDay(){
+  gymDraftRoutine.title = gymRoutineTitle?.value || gymDraftRoutine.title;
+
+  gymDraftRoutine.days.push({
+    name:"",
+    exercises:[]
+  });
+
+  renderCreateGymRoutine();
+}
+
+function addGymExercise(dayIndex){
+  const input = document.getElementById("gymExerciseInput" + dayIndex);
+  const text = input.value.trim();
+
+  if(!text) return;
+
+  gymDraftRoutine.days[dayIndex].exercises.push(text);
+  input.value = "";
+
+  renderCreateGymRoutine();
+}
+
+async function saveGymRoutine(){
+  const title = gymRoutineTitle.value.trim();
+
+  if(!title){
+    alert("Pon un título a la rutina");
+    return;
+  }
+
+  if(!gymDraftRoutine.days.length){
+    alert("Añade al menos un día");
+    return;
+  }
+
+  gymDraftRoutine.days.forEach((day,index)=>{
+    if(!day.name) day.name = "Día " + (index + 1);
+  });
+
+  data.gym.rutinas.push({
+    title,
+    days:gymDraftRoutine.days,
+    userUid:user.uid,
+    user:user.name,
+    createdAt:Date.now()
+  });
+
+  await saveData();
+
+  gymDraftRoutine = null;
+  renderGym();
+}
+
+function cancelGymRoutine(){
+  const ok = confirm("¿Seguro que quieres cancelar? No se guardará la rutina.");
+
+  if(!ok) return;
+
+  gymDraftRoutine = null;
+  renderGym();
+}
+
+function openGymRegister(routineIndex){
+  const rutina = data.gym.rutinas[routineIndex];
+
+  content.innerHTML = `
+    <button class="back" onclick="renderGym()">⬅</button>
+
+    <div class="card">
+      <h3>¿Qué quieres registrar?</h3>
+
+      <div class="menu">
+        ${rutina.days.map((day,dayIndex)=>`
+          <button onclick="openGymRegisterDay(${routineIndex},${dayIndex})">
+            ${day.name || "Día " + (dayIndex + 1)}
+          </button>
+        `).join("")}
+      </div>
+
+      <button onclick="renderGym()">Salir</button>
+    </div>
+  `;
+}
+
+function openGymRegisterDay(routineIndex, dayIndex){
+  const rutina = data.gym.rutinas[routineIndex];
+  const day = rutina.days[dayIndex];
+
+  content.innerHTML = `
+    <button class="back" onclick="openGymRegister(${routineIndex})">⬅</button>
+
+    <div class="card">
+      <h3>${day.name || "Día"}</h3>
+
+      <div style="text-align:left;">
+        ${day.exercises.map((exercise,i)=>`
+          <div class="rest-item">
+            <b>${exercise}</b>
+
+            <div style="display:grid;grid-template-columns:1fr 130px;gap:8px;margin-top:10px;">
+              <input id="gymValue${i}" type="number" placeholder="Número">
+              <select id="gymUnit${i}">
+                <option value="kg">kg</option>
+                <option value="minutos">minutos</option>
+                <option value="segundos">segundos</option>
+                <option value="metros">metros</option>
+                <option value="km">km</option>
+                <option value="calorías">calorías</option>
+              </select>
+            </div>
+          </div>
+        `).join("")}
+      </div>
+
+      <button onclick="saveGymRegister(${routineIndex},${dayIndex})">Guardar</button>
+    </div>
+  `;
+}
+
+async function saveGymRegister(routineIndex, dayIndex){
+  const rutina = data.gym.rutinas[routineIndex];
+  const day = rutina.days[dayIndex];
+
+  const entries = day.exercises.map((exercise,i)=>({
+    exercise,
+    value:document.getElementById("gymValue" + i).value,
+    unit:document.getElementById("gymUnit" + i).value
+  }));
+
+  data.gym.registros.push({
+    routineTitle:rutina.title,
+    routineIndex,
+    dayName:day.name,
+    dayIndex,
+    entries,
+    userUid:user.uid,
+    user:user.name,
+    date:new Date().toISOString()
+  });
+
+  await saveData();
+
+  showSuccessOverlay("Registro guardado");
+
+  setTimeout(()=>{
+    openGymRegister(routineIndex);
+  },900);
+}
+
+function emptyGymButton(){
+}
+
 /* GENERALES */
 async function addItem(section){
 const text=newItem.value.trim();
@@ -2405,6 +2680,9 @@ async function createRoom(){
     planes:[],
     restaurantes:[],
     viajes:[]
+    gym:{
+        rutinas:[],
+        registros:[]
   };
 
 ensureCurrentUserInRoom();
