@@ -954,6 +954,22 @@ button{
   font-size:18px;
 }
 
+@media(max-width:700px){
+  .modal-box .icon-btn{
+    width:38px;
+    min-width:38px;
+    height:38px;
+    padding:0;
+    flex:0 0 38px;
+  }
+
+  .event-item .icon-btn{
+    width:36px;
+    min-width:36px;
+    height:36px;
+  }
+}
+
 </style>
 </head>
 
@@ -1140,6 +1156,15 @@ function normalizeData(){
   if(!data.gym.registros) data.gym.registros = [];
 
 if(!data.enabledMenus.includes("gym")) data.enabledMenus.push("gym");
+if(!data.userOrder) data.userOrder = Object.keys(data.users);
+
+Object.keys(data.users).forEach(uid=>{
+  if(!data.userOrder.includes(uid)){
+    data.userOrder.push(uid);
+  }
+});
+
+data.userOrder = data.userOrder.filter(uid=>data.users[uid]);
 
 Object.values(data.users).forEach(u=>{
   if(!u.objetivos) u.objetivos = [];
@@ -1347,6 +1372,7 @@ if(section==="gym"){
 
 function ensureCurrentUserInRoom(){
   if(!data.users) data.users = {};
+  if(!data.userOrder) data.userOrder = [];
 
   if(!data.users[user.uid]){
     data.users[user.uid] = {
@@ -1357,6 +1383,10 @@ function ensureCurrentUserInRoom(){
       objetivos:[],
       menuOrder:[]
     };
+  }
+
+  if(!data.userOrder.includes(user.uid)){
+    data.userOrder.push(user.uid);
   }
 }
 
@@ -1387,7 +1417,9 @@ function renderObjetivos(){
 content.innerHTML=`<button class="back" onclick="goBack()">⬅</button>
 <div class="card">
 <div class="users-grid">
-${Object.entries(data.users).map(([uid,u])=>{
+${(data.userOrder || Object.keys(data.users)).map(uid=>{
+const u = data.users[uid];
+if(!u) return "";
 const total=u.objetivos.length;
 const done=u.objetivos.filter(x=>x.done).length;
 const percent=total?(done/total)*100:0;
@@ -2730,6 +2762,7 @@ async function createRoom(){
   roomName:name,
   enabledMenus,
   users:{},
+  userOrder:[],
   planes:[],
   restaurantes:[],
   viajes:[],
@@ -2968,6 +3001,9 @@ async function leaveRoom(code){
 
     if(roomData.users && user && user.uid){
       delete roomData.users[user.uid];
+    if(roomData.userOrder){
+      roomData.userOrder = roomData.userOrder.filter(uid=>uid !== user.uid);
+}
     }
 
     if(roomData.restaurantes){
