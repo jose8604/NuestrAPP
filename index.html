@@ -911,6 +911,49 @@ button{
   touch-action:none;
 }
 
+.profile-settings-card{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:14px;
+  padding:8px 0 4px;
+}
+
+.profile-photo-editor{
+  position:relative;
+  width:122px;
+  height:122px;
+}
+
+.settings-profile-photo{
+  width:122px;
+  height:122px;
+  border-radius:34px;
+  object-fit:cover;
+  background:var(--surface-soft);
+  border:5px solid #fff;
+  box-shadow:0 14px 34px rgba(31,41,51,.18);
+}
+
+.photo-edit-btn{
+  position:absolute;
+  right:-4px;
+  bottom:-4px;
+  width:42px;
+  height:42px;
+  min-width:42px;
+  padding:0;
+  border-radius:15px;
+  border:3px solid #fff;
+  box-shadow:0 8px 20px rgba(31,41,51,.18);
+}
+
+.profile-settings-card input[type="text"]{
+  text-align:center;
+  font-weight:700;
+  font-size:18px;
+}
+
 </style>
 </head>
 
@@ -1460,7 +1503,7 @@ content.insertAdjacentHTML("beforeend",`
 ${eventos.length?eventos.map((e,i)=>`
 <div class="event-item" style="background:${e.color}">
 <div style="display:flex;align-items:center;gap:8px;">
-<img class="small-photo" src="${data.users[e.user]?.photo||''}">
+<img class="small-photo" src="${getUserPhoto(e.userUid || e.user)}">
 <b style="flex:1">${e.title}</b>
 
 <button class="icon-btn"
@@ -1491,7 +1534,8 @@ time:evHora.value,
 place:evLugar.value.trim(),
 color:evColor.value,
 desc:evDesc.value.trim(),
-user:user.name
+user:user.name,
+userUid:user.uid
 });
 await saveData();
 closeModal();
@@ -1528,7 +1572,7 @@ ${pendientes.length ? pendientes.map(item=>`
 <div class="rest-item">
 
 <div class="rest-line">
-<img class="small-photo" src="${data.users[item.user]?.photo||''}">
+<img class="small-photo" src="${getUserPhoto(item.userUid || item.user)}">
 <span onclick="openRestaurantView(${data.restaurantes.indexOf(item)})"
 style="cursor:pointer;font-weight:bold;flex:1;text-align:left">
 ${item.nombre}
@@ -1635,6 +1679,7 @@ descripcion:rDesc.value.trim(),
 platos:rPlatos.value.trim(),
 fotos:fotos,
 user:user.name,
+userUid:user.uid,
 done:false,
 valoraciones:[]
 });
@@ -3009,6 +3054,24 @@ function getVisibleMenusForUser(){
   return order.filter(x=>enabled.includes(x));
 }
 
+function getUserProfile(ref){
+  if(!ref || !data.users) return null;
+
+  if(data.users[ref]) return data.users[ref];
+
+  return Object.values(data.users).find(u=>u.name === ref || u.uid === ref) || null;
+}
+
+function getUserPhoto(ref){
+  const profile = getUserProfile(ref);
+  return profile?.photo || "";
+}
+
+function getUserDisplayName(ref){
+  const profile = getUserProfile(ref);
+  return profile?.name || ref || "";
+}
+
 function setHeaderTitle(title){
   roomTitle.innerText = title || data.roomName || "Nuestra App";
 }
@@ -3043,12 +3106,21 @@ function renderSettings(){
         </div>
 
         <div class="settings-panel">
-          <div id="profileSettings">
-            <h3>Configuración de perfil</h3>
-            <input id="settingsName" value="${user.name}" placeholder="Nombre">
-            <input id="settingsPhotoInput" type="file" accept="image/*">
-            <button onclick="saveProfileSettings()">Guardar perfil</button>
-          </div>
+         <div id="profileSettings">
+  <h3>Configuración de perfil</h3>
+
+  <div class="profile-settings-card">
+    <div class="profile-photo-editor">
+      <img id="settingsPhotoPreview" class="settings-profile-photo" src="${user.photo || getUserPhoto(user.uid)}">
+      <button class="photo-edit-btn" type="button" onclick="settingsPhotoInput.click()">✏️</button>
+    </div>
+
+    <input id="settingsPhotoInput" type="file" accept="image/*" style="display:none" onchange="previewSettingsPhoto(event)">
+    <input id="settingsName" type="text" value="${user.name}" placeholder="Nombre">
+
+    <button onclick="saveProfileSettings()">Guardar cambios</button>
+  </div>
+</div>
 
           <div id="roomSettings" style="display:none">
             <h3>Configuración de sala</h3>
@@ -3171,6 +3243,19 @@ function showSettingsTab(id){
   roomSettings.style.display = id === "roomSettings" ? "block" : "none";
 }
 
+function previewSettingsPhoto(event){
+  const file = event.target.files[0];
+  if(!file) return;
+
+  const reader = new FileReader();
+
+  reader.onload = e=>{
+    settingsPhotoPreview.src = e.target.result;
+  };
+
+  reader.readAsDataURL(file);
+}
+
 async function saveProfileSettings(){
   const newName = settingsName.value.trim();
   const file = settingsPhotoInput.files[0];
@@ -3180,7 +3265,7 @@ async function saveProfileSettings(){
     return;
   }
 
-  let photo = user.photo || "";
+  let photo = user.photo || getUserPhoto(user.uid);
 
   if(file){
     photo = await compressImage(file,320,.85);
@@ -3189,7 +3274,7 @@ async function saveProfileSettings(){
   user.name = newName;
   user.photo = photo;
 
-  await db.collection("profiles").doc(user.uid).set(user);
+  await db.collection("profiles").doc(user.uid).set(user, {merge:true});
   localStorage.setItem("user", JSON.stringify(user));
 
   if(data.users[user.uid]){
@@ -3198,6 +3283,11 @@ async function saveProfileSettings(){
   }
 
   await saveData();
+
+  if(menuUser) menuUser.innerText = user.name;
+  if(menuPhoto) menuPhoto.src = photo;
+
+  showSuccessOverlay("Perfil guardado");
   renderSettings();
 }
   
