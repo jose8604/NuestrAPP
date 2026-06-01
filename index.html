@@ -1064,6 +1064,7 @@ let selectedStars=0;
 let currentMonth=new Date().getMonth();
 let currentYear=new Date().getFullYear();
 let lastProgressByUser = {};
+let lockAutoRefresh = false;
 
 let roomCode = null;
 let roomUnsubscribe = null;
@@ -1155,9 +1156,17 @@ function loadData(){
       data = doc.data();
       normalizeData();
 
-      roomTitle.innerText = data.roomName || "Nuestra App";
+      if(currentSection === ""){
+        roomTitle.innerText = data.roomName || "Nuestra App";
+      }
+
       renderMainMenu();
-      refreshUI();
+
+      const hasModalOpen = !!document.querySelector(".modal");
+
+      if(!lockAutoRefresh && !hasModalOpen){
+        refreshUI();
+      }
     }
   });
 }
@@ -1296,6 +1305,7 @@ if(roomCode && data.roomName){
 }
 
 function goBack(){
+lockAutoRefresh = false;
   currentSection = "";
   content.innerHTML="";
   mainMenu.style.display="grid";
@@ -1549,6 +1559,7 @@ return (arr.reduce((a,b)=>a+b.stars,0)/arr.length).toFixed(1);
 }
 
 function renderRestaurantes(){
+lockAutoRefresh = false;
 const pendientes=data.restaurantes.filter(x=>!x.done);
 const hechos=data.restaurantes.filter(x=>x.done);
 
@@ -2027,6 +2038,7 @@ let gymDraftRoutine = null;
 
 function renderGym(){
   const rutinas = (data.gym?.rutinas || []).filter(r=>r.userUid === user.uid);
+lockAutoRefresh = false;
 
   content.innerHTML = `
     <button class="back" onclick="goBack()">⬅</button>
@@ -2083,6 +2095,7 @@ function toggleGymRoutine(index){
 }
 
 function openCreateGymRoutine(){
+lockAutoRefresh = true;
   gymDraftRoutine = {
     title:"",
     days:[]
@@ -2194,6 +2207,7 @@ function cancelGymRoutine(){
 }
 
 function openGymRegister(routineIndex){
+lockAutoRefresh = true;
   const rutina = data.gym.rutinas[routineIndex];
 
   content.innerHTML = `
@@ -2216,6 +2230,7 @@ function openGymRegister(routineIndex){
 }
 
 function openGymRegisterDay(routineIndex, dayIndex){
+lockAutoRefresh = true;
   const rutina = data.gym.rutinas[routineIndex];
   const day = rutina.days[dayIndex];
 
@@ -2322,105 +2337,97 @@ else showSection(section);
 }
 
 function closeModal(){
-document.querySelectorAll(".modal").forEach(x=>x.remove());
+  document.querySelectorAll(".modal").forEach(x=>x.remove());
+  lockAutoRefresh = false;
 }
 
 
 function openRestaurantView(i){
-const r=data.restaurantes[i];
+  lockAutoRefresh = true;
 
-content.insertAdjacentHTML("beforeend",`
-<div class="modal">
-<div class="modal-box" style="padding:0;overflow:hidden">
+  const r = data.restaurantes[i];
+  const creatorPhoto = getUserPhoto ? getUserPhoto(r.userUid || r.user) : "";
+  const rating = mediaValoraciones(r.valoraciones);
+  const votes = r.valoraciones?.length || 0;
 
-<!-- HEADER BONITO -->
-<div style="
-background:#ffe066;
-padding:16px;
-text-align:left;
-position:sticky;
-top:0;
-">
+  content.insertAdjacentHTML("beforeend",`
+    <div class="modal">
+      <div class="modal-box" style="padding:0;overflow:hidden;max-width:560px;">
 
-<h2 style="margin:0;font-size:20px;">
-🍽️ ${r.nombre}
-</h2>
+        <div style="
+          min-height:150px;
+          padding:18px;
+          display:flex;
+          flex-direction:column;
+          justify-content:flex-end;
+          text-align:left;
+          background:
+            linear-gradient(180deg,rgba(31,41,51,.08),rgba(31,41,51,.72)),
+            ${r.fotos?.[0] ? `url('${r.fotos[0]}') center/cover` : "linear-gradient(135deg,#ffe066,#74c0fc)"};
+          color:#fff;
+        ">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+            <img class="small-photo" src="${creatorPhoto}" style="border:2px solid #fff;">
+            <small style="color:#fff;">Creado por ${r.user || "Usuario"}</small>
+          </div>
 
-<small>Creado por ${r.user}</small>
-</div>
+          <h2 style="margin:0;font-size:26px;color:#fff;">${r.nombre}</h2>
 
-<!-- CONTENIDO -->
-<div style="padding:16px;text-align:left;">
+          <div style="margin-top:8px;color:#fff;font-weight:700;">
+            ⭐ ${rating}/5 · ${votes} votos · 💰 ${r.precio || "-"}
+          </div>
+        </div>
 
-<!-- INFO EN TARJETAS -->
-<div style="
-background:#fff9db;
-padding:10px;
-border-radius:12px;
-margin-bottom:10px;
-">
-📍 <b>Dirección:</b><br>
-${r.direccion||"Sin dirección"}
-</div>
+        <div style="padding:18px;text-align:left;">
 
-<div style="
-background:#fff9db;
-padding:10px;
-border-radius:12px;
-margin-bottom:10px;
-">
-📝 <b>Descripción:</b><br>
-${r.descripcion||"Sin descripción"}
-</div>
+          <div style="display:grid;gap:10px;">
+            <div class="rest-item" style="margin:0;">
+              <small>Dirección</small><br>
+              <b>${r.direccion || "Sin dirección"}</b>
+            </div>
 
-<div style="
-background:#fff9db;
-padding:10px;
-border-radius:12px;
-margin-bottom:10px;
-">
-🍴 <b>Platos recomendados:</b><br>
-${r.platos||"Sin información"}
-</div>
+            <div class="rest-item" style="margin:0;">
+              <small>Descripción</small><br>
+              ${r.descripcion || "Sin descripción"}
+            </div>
 
-<!-- FOTOS -->
-${r.fotos?.length ? `
-<div style="margin-top:10px;">
-<b>📸 Fotos</b>
-<div style="
-display:grid;
-grid-template-columns:1fr 1fr;
-gap:8px;
-margin-top:8px;
-">
-${r.fotos.map(f=>`
-<img src="${f}" style="
-width:100%;
-height:120px;
-object-fit:cover;
-border-radius:12px;
-">
-`).join("")}
-</div>
-</div>
-` : ""}
+            <div class="rest-item" style="margin:0;">
+              <small>Platos recomendados</small><br>
+              ${r.platos || "Sin información"}
+            </div>
+          </div>
 
-<!-- BOTÓN -->
-<button onclick="closeModal()" style="
-margin-top:15px;
-width:100%;
-padding:12px;
-border-radius:12px;
-background:#ffe066;
-font-weight:bold;
-">
-Cerrar
-</button>
+          ${r.fotos?.length > 1 ? `
+            <div style="margin-top:16px;">
+              <b>Fotos</b>
+              <div style="
+                display:grid;
+                grid-template-columns:repeat(2,1fr);
+                gap:8px;
+                margin-top:10px;
+              ">
+                ${r.fotos.slice(1).map(f=>`
+                  <img src="${f}" style="
+                    width:100%;
+                    height:130px;
+                    object-fit:cover;
+                    border-radius:16px;
+                  ">
+                `).join("")}
+              </div>
+            </div>
+          ` : ""}
 
-</div>
-</div>
-</div>
-`);
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:18px;">
+            <button onclick="openEditRestaurant(${i})">Editar</button>
+            <button onclick="openVoteRestaurant(${i})">Valorar</button>
+            <button onclick="closeModal()">Cerrar</button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  `);
 }
 
 function mediaViajes(arr){
@@ -3063,8 +3070,12 @@ function getUserProfile(ref){
 }
 
 function getUserPhoto(ref){
-  const profile = getUserProfile(ref);
-  return profile?.photo || "";
+  if(!ref || !data.users) return "";
+
+  if(data.users[ref]) return data.users[ref].photo || "";
+
+  const found = Object.values(data.users).find(u=>u.name === ref || u.uid === ref);
+  return found?.photo || "";
 }
 
 function getUserDisplayName(ref){
