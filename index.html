@@ -1776,7 +1776,7 @@ ${proximos.map(v=>`
 
 <div class="rest-actions" style="margin-top:8px;">
 <button class="icon-btn" onclick="openEditViaje(${data.viajes.indexOf(v)})">✏️</button>
-<button class="icon-btn" onclick="removeItem('viajes',${data.viajes.indexOf(v)})">🗑️</button>
+<button class="icon-btn" onclick="deleteViaje(${data.viajes.indexOf(v)})">🗑️</button>
 <button class="icon-btn" onclick="openFinishViaje(${data.viajes.indexOf(v)})">✔</button>
 </div>
 </div>
@@ -2947,11 +2947,24 @@ async function addRoomByCode(){
     return;
   }
 
-  const roomData = doc.data();
-  saveRoomToList(code, roomData.roomName || "Sala sin nombre");
+  roomCode = code;
+  data = doc.data();
+  normalizeData();
 
-  alert("Sala añadida");
-  renderRoomSwitcher();
+  ensureCurrentUserInRoom();
+  await saveData();
+
+  localStorage.setItem("roomCode", roomCode);
+  await rememberRoomForUser(roomCode, data.roomName);
+
+  currentSection = "";
+  content.innerHTML = "";
+  mainMenu.style.display = "grid";
+
+  setHeaderTitle(data.roomName || "Nuestra App");
+  renderMainMenu();
+
+  startApp();
 }
 
 async function switchRoom(code){
