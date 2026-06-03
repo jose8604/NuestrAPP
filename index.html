@@ -970,6 +970,46 @@ button{
   }
 }
 
+.gym-actions{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  margin-top:12px;
+}
+
+.gym-chart{
+  display:flex;
+  align-items:flex-end;
+  gap:10px;
+  min-height:190px;
+  padding:18px 8px 8px;
+  border-radius:18px;
+  background:#fff;
+  border:1px solid var(--line);
+  overflow-x:auto;
+}
+
+.gym-bar-wrap{
+  min-width:54px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:8px;
+}
+
+.gym-bar{
+  width:34px;
+  min-height:8px;
+  border-radius:12px 12px 6px 6px;
+  background:linear-gradient(180deg,#4dabf7,#51cf66);
+}
+
+.gym-bar-label{
+  font-size:11px;
+  color:var(--muted);
+  text-align:center;
+}
+
 </style>
 </head>
 
@@ -2067,10 +2107,12 @@ renderViajes();
 
 let gymOpenRoutines = {};
 let gymDraftRoutine = null;
+let gymEditingIndex = null;
 
 function renderGym(){
+  lockAutoRefresh = false;
+
   const rutinas = (data.gym?.rutinas || []).filter(r=>r.userUid === user.uid);
-lockAutoRefresh = false;
 
   content.innerHTML = `
     <button class="back" onclick="goBack()">⬅</button>
@@ -2091,7 +2133,11 @@ lockAutoRefresh = false;
                 <button class="icon-btn" onclick="toggleGymRoutine(${originalIndex})">
                   ${open ? "▼" : "▶"}
                 </button>
+
                 <b style="flex:1;">${rutina.title}</b>
+
+                <button class="icon-btn" onclick="openEditGymRoutine(${originalIndex})">✏️</button>
+                <button class="icon-btn" onclick="deleteGymRoutine(${originalIndex})">🗑️</button>
               </div>
 
               ${open ? `
@@ -2107,9 +2153,9 @@ lockAutoRefresh = false;
                     </div>
                   `).join("")}
 
-                  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">
+                  <div class="gym-actions">
                     <button onclick="openGymRegister(${originalIndex})">Registro</button>
-                    <button onclick="emptyGymButton()">Pendiente</button>
+                    <button onclick="openGymStats(${originalIndex})">Estadística</button>
                   </div>
                 </div>
               ` : ""}
@@ -2127,7 +2173,9 @@ function toggleGymRoutine(index){
 }
 
 function openCreateGymRoutine(){
-lockAutoRefresh = true;
+  lockAutoRefresh = true;
+  gymEditingIndex = null;
+
   gymDraftRoutine = {
     title:"",
     days:[]
@@ -2136,12 +2184,49 @@ lockAutoRefresh = true;
   renderCreateGymRoutine();
 }
 
+function openEditGymRoutine(index){
+  lockAutoRefresh = true;
+  gymEditingIndex = index;
+
+  const rutina = data.gym.rutinas[index];
+
+  gymDraftRoutine = JSON.parse(JSON.stringify({
+    title:rutina.title,
+    days:rutina.days || []
+  }));
+
+  renderCreateGymRoutine();
+}
+
+async function deleteGymRoutine(index){
+  const rutina = data.gym.rutinas[index];
+
+  const ok = confirm("¿Seguro que quieres eliminar esta rutina? También se eliminarán sus registros.");
+
+  if(!ok) return;
+
+  const routineId = rutina.id || "";
+
+  data.gym.rutinas.splice(index,1);
+
+  data.gym.registros = (data.gym.registros || []).filter(reg=>{
+    if(routineId && reg.routineId){
+      return reg.routineId !== routineId;
+    }
+
+    return !(reg.routineTitle === rutina.title && reg.userUid === user.uid);
+  });
+
+  await saveData();
+  renderGym();
+}
+
 function renderCreateGymRoutine(){
   content.innerHTML = `
     <button class="back" onclick="cancelGymRoutine()">⬅</button>
 
     <div class="card">
-      <h3>Crear rutina</h3>
+      <h3>${gymEditingIndex === null ? "Crear rutina" : "Editar rutina"}</h3>
 
       <input id="gymRoutineTitle" value="${gymDraftRoutine.title || ""}" placeholder="Título de la rutina">
 
@@ -2213,28 +2298,153 @@ async function saveGymRoutine(){
 
   gymDraftRoutine.days.forEach((day,index)=>{
     if(!day.name) day.name = "Día " + (index + 1);
+    if(!day.exercises) day.exercises = [];
   });
 
-  data.gym.rutinas.push({
-    title,
-    days:gymDraftRoutine.days,
-    userUid:user.uid,
-    user:user.name,
-    createdAt:Date.now()
-  });
+  if(gymEditingIndex === null){
+    data.gym.rutinas.push({
+      id:"rutina-" + Date.now(),
+      title,
+      days:gymDraftRoutine.days,
+      userUid:user.uid,
+      user:user.name,
+      createdAt:Date.now()
+    });
+  }else{
+    const oldRoutine = data.gym.rutinas[gymEditingIndex];
+
+    data.gym.rutinas[gymEditingIndex] = {
+      ...oldRoutine,
+      title,
+      days:gymDraftRoutine.days,
+      updatedAt:Date.now()
+    };
+  }
 
   await saveData();
 
   gymDraftRoutine = null;
+  gymEditingIndex = null;
+
   renderGym();
 }
 
+function openGymStats(routineIndex){
+  lockAutoRefresh = true;
+
+  const rutina = data.gym.rutinas[routineIndex];
+  const exercises = [...new Set(
+    rutina.days.flatMap(day=>day.exercises || [])
+  )];
+
+  content.innerHTML = `
+    <button class="back" onclick="renderGym()">⬅</button>
+
+    <div class="card">
+      <h3>Estadística</h3>
+      <p>${rutina.title}</p>
+
+      ${exercises.length ? `
+        <select id="gymStatsExercise" onchange="renderGymStatsChart(${routineIndex})">
+          ${exercises.map(ex=>`
+            <option value="${ex}">${ex}</option>
+          `).join("")}
+        </select>
+
+        <select id="gymStatsUnit" onchange="renderGymStatsChart(${routineIndex})">
+          <option value="kg">kg</option>
+          <option value="minutos">minutos</option>
+          <option value="segundos">segundos</option>
+          <option value="metros">metros</option>
+          <option value="km">km</option>
+          <option value="calorías">calorías</option>
+        </select>
+
+        <div id="gymStatsChart" style="margin-top:18px;"></div>
+      ` : "<p>Esta rutina no tiene ejercicios todavía</p>"}
+
+      <button onclick="renderGym()">Salir</button>
+    </div>
+  `;
+
+  setTimeout(()=>{
+    renderGymStatsChart(routineIndex);
+  },50);
+}
+
+function renderGymStatsChart(routineIndex){
+  const chart = document.getElementById("gymStatsChart");
+  if(!chart) return;
+
+  const rutina = data.gym.rutinas[routineIndex];
+  const exercise = gymStatsExercise.value;
+  const unit = gymStatsUnit.value;
+
+  const routineId = rutina.id || "";
+
+  const registros = (data.gym.registros || [])
+    .filter(reg=>{
+      if(reg.userUid !== user.uid) return false;
+
+      if(routineId && reg.routineId){
+        return reg.routineId === routineId;
+      }
+
+      return reg.routineTitle === rutina.title;
+    })
+    .flatMap(reg=>{
+      return (reg.entries || [])
+        .filter(entry=>entry.exercise === exercise && entry.unit === unit && entry.value !== "")
+        .map(entry=>({
+          value:Number(entry.value),
+          date:reg.date,
+          dayName:reg.dayName || "Día"
+        }));
+    })
+    .filter(x=>!isNaN(x.value));
+
+  if(!registros.length){
+    chart.innerHTML = `
+      <div class="rest-item">
+        No hay registros de <b>${exercise}</b> en <b>${unit}</b> todavía.
+      </div>
+    `;
+    return;
+  }
+
+  const max = Math.max(...registros.map(x=>x.value),1);
+
+  chart.innerHTML = `
+    <div class="rest-item">
+      <b>${exercise}</b><br>
+      <small>Mostrando evolución en ${unit}</small>
+    </div>
+
+    <div class="gym-chart">
+      ${registros.map(reg=>{
+        const height = Math.max((reg.value / max) * 150, 8);
+        const date = new Date(reg.date);
+        const label = date.toLocaleDateString("es-ES", {day:"2-digit", month:"2-digit"});
+
+        return `
+          <div class="gym-bar-wrap">
+            <div style="font-size:12px;font-weight:700;">${reg.value}${unit}</div>
+            <div class="gym-bar" style="height:${height}px;"></div>
+            <div class="gym-bar-label">${label}<br>${reg.dayName}</div>
+          </div>
+        `;
+      }).join("")}
+    </div>
+  `;
+}
+
 function cancelGymRoutine(){
-  const ok = confirm("¿Seguro que quieres cancelar? No se guardará la rutina.");
+  const ok = confirm("¿Seguro que quieres cancelar? No se guardarán los cambios.");
 
   if(!ok) return;
 
   gymDraftRoutine = null;
+  gymEditingIndex = null;
   renderGym();
 }
 
@@ -2307,9 +2517,10 @@ async function saveGymRegister(routineIndex, dayIndex){
     unit:document.getElementById("gymUnit" + i).value
   }));
 
-  data.gym.registros.push({
-    routineTitle:rutina.title,
-    routineIndex,
+data.gym.registros.push({
+  routineId:rutina.id || "",
+  routineTitle:rutina.title,
+  routineIndex,
     dayName:day.name,
     dayIndex,
     entries,
