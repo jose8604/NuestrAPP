@@ -1012,24 +1012,33 @@ button{
 
 .cal-event-chip{
   width:100%;
-  border-radius:8px;
+  max-width:100%;
+  min-width:0;
+  border-radius:7px;
   font-size:10px;
   padding:2px 4px;
   margin-top:3px;
+  line-height:1.15;
+  text-align:left;
   white-space:nowrap;
   overflow:hidden;
   text-overflow:ellipsis;
-  line-height:1.2;
-  text-align:left;
+  display:block;
 }
 
 .cal-more-chip{
   width:100%;
+  max-width:100%;
+  min-width:0;
   margin-top:3px;
   font-size:10px;
   font-weight:700;
   color:var(--muted);
+  line-height:1.1;
   text-align:left;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
 }
 
 .day{
@@ -1059,6 +1068,44 @@ button{
   }
 }
 
+.day > div{
+  width:100%;
+  min-width:0;
+  overflow:hidden;
+}
+
+.gym-edit-day{
+  padding:16px;
+  margin:14px 0;
+  border-radius:20px;
+  background:#fffaf0;
+  border:1px solid var(--line);
+}
+
+.gym-edit-day-title{
+  display:grid;
+  grid-template-columns:1fr 42px;
+  gap:8px;
+  align-items:center;
+  margin-bottom:12px;
+}
+
+.gym-edit-exercise{
+  display:grid;
+  grid-template-columns:1fr 38px;
+  gap:8px;
+  align-items:center;
+  margin:8px 0;
+}
+
+.gym-edit-label{
+  display:block;
+  font-size:12px;
+  font-weight:700;
+  color:var(--muted);
+  margin-bottom:4px;
+}
+
 </style>
 </head>
 
@@ -1080,6 +1127,12 @@ button{
 <button style="width:100%;" onclick="logout()">Cerrar sesión 🚪</button>
 </div>
 </header>
+
+<div id="enteringRoom" class="card gate-card" style="display:none">
+  <h2>Entrando a</h2>
+  <h1 id="enteringRoomName" style="font-size:32px;"></h1>
+  <p>Preparando la sala...</p>
+</div>
 
 <div id="inviteGate" class="card gate-card" style="display:none">
   <h2>Invitación a sala</h2>
@@ -1358,9 +1411,7 @@ if(codeFromLink){
   return;
 }
 
-roomGate.style.display = "block";
-showRoomStart();
-renderMyRoomsBox();
+await showRoomGateOrAutoEnter();
 
   }catch(error){
     alert("Error creando cuenta: " + error.message);
@@ -1412,9 +1463,7 @@ if(codeFromLink){
   return;
 }
 
-roomGate.style.display = "block";
-showRoomStart();
-renderMyRoomsBox();
+await showRoomGateOrAutoEnter();
 
   }catch(error){
     alert("Error iniciando sesión: " + error.message);
@@ -1573,14 +1622,14 @@ grid+=`
 <div class="day ${isToday?'today':''}" onclick="openDay('${fecha}')">
 ${d}
 <div style="margin-top:4px;">
-${eventos.slice(0,2).map(ev=>`
+${eventos.slice(0, window.innerWidth <= 700 ? 1 : 2).map(ev=>`
 <div class="cal-event-chip" style="background:${ev.color||'#ffd43b'};">
   ${ev.title}
 </div>
 `).join("")}
 
-${eventos.length > 2 ? `
-<div class="cal-more-chip">+${eventos.length - 2} más</div>
+${eventos.length > (window.innerWidth <= 700 ? 1 : 2) ? `
+<div class="cal-more-chip">+${eventos.length - (window.innerWidth <= 700 ? 1 : 2)} más</div>
 ` : ""}
 </div></div>`;
 }
@@ -2164,11 +2213,13 @@ renderViajes();
 let gymOpenRoutines = {};
 let gymDraftRoutine = null;
 let gymEditingIndex = null;
+let showSharedGymRoutines = localStorage.getItem("showSharedGymRoutines") === "true";
 
 function renderGym(){
   lockAutoRefresh = false;
 
-  const rutinas = (data.gym?.rutinas || []).filter(r=>r.userUid === user.uid);
+  const misRutinas = (data.gym?.rutinas || []).filter(r=>r.userUid === user.uid);
+  const compartidas = (data.gym?.rutinas || []).filter(r=>r.userUid !== user.uid && r.isPublic);
 
   content.innerHTML = `
     <button class="back" onclick="goBack()">⬅</button>
@@ -2179,65 +2230,96 @@ function renderGym(){
       <h3 style="text-align:left;margin-top:24px;">Mis rutinas</h3>
 
       <div style="text-align:left;">
-        ${rutinas.length ? rutinas.map((rutina)=>{
+        ${misRutinas.length ? misRutinas.map(rutina=>{
           const originalIndex = data.gym.rutinas.indexOf(rutina);
           const open = gymOpenRoutines[originalIndex];
 
           return `
             <div class="rest-item">
               <div style="display:flex;align-items:center;gap:10px;">
-                <button class="icon-btn" onclick="toggleGymRoutine(${originalIndex})">
-                  ${open ? "▼" : "▶"}
-                </button>
-
+                <button class="icon-btn" onclick="toggleGymRoutine(${originalIndex})">${open ? "▼" : "▶"}</button>
                 <b style="flex:1;">${rutina.title}</b>
-
                 <button class="icon-btn" onclick="openEditGymRoutine(${originalIndex})">✏️</button>
                 <button class="icon-btn" onclick="deleteGymRoutine(${originalIndex})">🗑️</button>
               </div>
 
-              ${open ? `
-                <div style="margin-top:12px;">
-                  ${rutina.days.map(day=>`
-                    <div style="margin:12px 0;padding:12px;border-radius:14px;background:#fffaf0;border:1px solid var(--line);">
-                      <b>${day.name || "Día sin nombre"}</b>
-                      <ul style="padding:0;margin:10px 0 0;">
-                        ${day.exercises.map(ex=>`
-                          <li>${ex}</li>
-                        `).join("")}
-                      </ul>
-                    </div>
-                  `).join("")}
+              <div class="gym-actions">
+                <button onclick="toggleGymPublic(${originalIndex})">
+                  ${rutina.isPublic ? "Dejar de compartir" : "Compartir"}
+                </button>
+              </div>
 
-                  <div class="gym-actions">
-                    <button onclick="openGymRegister(${originalIndex})">Registro</button>
-                    <button onclick="openGymStats(${originalIndex})">Estadística</button>
-                  </div>
-                </div>
-              ` : ""}
+              ${open ? renderGymRoutineDetail(rutina, originalIndex, true) : ""}
             </div>
           `;
         }).join("") : "<p>No tienes rutinas creadas todavía</p>"}
       </div>
+
+      <hr>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;text-align:left;">
+        <h3 style="margin:0;">Rutinas compartidas</h3>
+        <button onclick="toggleSharedGymView()">${showSharedGymRoutines ? "Ocultar" : "Ver"}</button>
+      </div>
+
+      ${showSharedGymRoutines ? `
+        <div style="text-align:left;margin-top:12px;">
+          ${compartidas.length ? compartidas.map(rutina=>{
+            const originalIndex = data.gym.rutinas.indexOf(rutina);
+            const open = gymOpenRoutines[originalIndex];
+
+            return `
+              <div class="rest-item">
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <button class="icon-btn" onclick="toggleGymRoutine(${originalIndex})">${open ? "▼" : "▶"}</button>
+                  <div style="flex:1;">
+                    <b>${rutina.title}</b><br>
+                    <small>Compartida por ${rutina.user || "Usuario"}</small>
+                  </div>
+                </div>
+
+                ${open ? renderGymRoutineDetail(rutina, originalIndex, false) : ""}
+              </div>
+            `;
+          }).join("") : "<p>No hay rutinas compartidas todavía</p>"}
+        </div>
+      ` : ""}
     </div>
   `;
 }
 
-function toggleGymRoutine(index){
-  gymOpenRoutines[index] = !gymOpenRoutines[index];
+function renderGymRoutineDetail(rutina, originalIndex, owner){
+  return `
+    <div style="margin-top:12px;">
+      ${rutina.days.map(day=>`
+        <div style="margin:12px 0;padding:12px;border-radius:14px;background:#fffaf0;border:1px solid var(--line);">
+          <b>${day.name || "Día sin nombre"}</b>
+          <ul style="padding:0;margin:10px 0 0;">
+            ${day.exercises.map(ex=>`<li>${ex}</li>`).join("")}
+          </ul>
+        </div>
+      `).join("")}
+
+      ${owner ? `
+        <div class="gym-actions">
+          <button onclick="openGymRegister(${originalIndex})">Registro</button>
+          <button onclick="openGymStats(${originalIndex})">Estadística</button>
+        </div>
+      ` : ""}
+    </div>
+  `;
+}
+
+async function toggleGymPublic(index){
+  data.gym.rutinas[index].isPublic = !data.gym.rutinas[index].isPublic;
+  await saveData();
   renderGym();
 }
 
-function openCreateGymRoutine(){
-  lockAutoRefresh = true;
-  gymEditingIndex = null;
-
-  gymDraftRoutine = {
-    title:"",
-    days:[]
-  };
-
-  renderCreateGymRoutine();
+function toggleSharedGymView(){
+  showSharedGymRoutines = !showSharedGymRoutines;
+  localStorage.setItem("showSharedGymRoutines", showSharedGymRoutines);
+  renderGym();
 }
 
 function openEditGymRoutine(index){
@@ -2284,6 +2366,7 @@ function renderCreateGymRoutine(){
     <div class="card">
       <h3>${gymEditingIndex === null ? "Crear rutina" : "Editar rutina"}</h3>
 
+      <label class="gym-edit-label">Nombre de la rutina</label>
       <input id="gymRoutineTitle" value="${gymDraftRoutine.title || ""}" placeholder="Título de la rutina">
 
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:18px;">
@@ -2291,18 +2374,26 @@ function renderCreateGymRoutine(){
         <button class="plus-btn" onclick="addGymDay()">+</button>
       </div>
 
-      <div id="gymDaysBox" style="text-align:left;margin-top:14px;">
+      <div style="text-align:left;margin-top:14px;">
         ${gymDraftRoutine.days.map((day,dayIndex)=>`
-          <div class="rest-item">
-            <input value="${day.name || ""}" placeholder="Nombre del día" oninput="gymDraftRoutine.days[${dayIndex}].name=this.value">
+          <div class="gym-edit-day">
+            <label class="gym-edit-label">Nombre del día</label>
 
-            <div>
-              ${day.exercises.map(ex=>`
-                <li>${ex}</li>
-              `).join("")}
+            <div class="gym-edit-day-title">
+              <input value="${day.name || ""}" placeholder="Ej: Pecho y tríceps" oninput="gymDraftRoutine.days[${dayIndex}].name=this.value">
+              <button class="icon-btn" onclick="removeGymDay(${dayIndex})">🗑️</button>
             </div>
 
-            <div style="display:flex;gap:8px;align-items:center;margin-top:10px;">
+            <label class="gym-edit-label">Ejercicios</label>
+
+            ${(day.exercises || []).map((ex,exIndex)=>`
+              <div class="gym-edit-exercise">
+                <input value="${ex}" placeholder="Ejercicio" oninput="updateGymExercise(${dayIndex},${exIndex},this.value)">
+                <button class="icon-btn" onclick="removeGymExercise(${dayIndex},${exIndex})">❌</button>
+              </div>
+            `).join("")}
+
+            <div style="display:flex;gap:8px;align-items:center;margin-top:12px;">
               <input id="gymExerciseInput${dayIndex}" placeholder="Añadir ejercicio">
               <button class="icon-btn" onclick="addGymExercise(${dayIndex})">✔</button>
             </div>
@@ -2310,7 +2401,7 @@ function renderCreateGymRoutine(){
         `).join("")}
       </div>
 
-      <button onclick="saveGymRoutine()">Guardar</button>
+      <button onclick="saveGymRoutine()">Guardar cambios</button>
       <button onclick="cancelGymRoutine()">Cancelar</button>
     </div>
   `;
@@ -2377,6 +2468,9 @@ async function saveGymRoutine(){
     };
   }
 
+gymDraftRoutine.days.forEach(day=>{
+  day.exercises = (day.exercises || []).map(x=>x.trim()).filter(Boolean);
+});
   await saveData();
 
   gymDraftRoutine = null;
@@ -2927,9 +3021,7 @@ document.addEventListener("DOMContentLoaded",()=>{
 
     await loadProfileFromAuth(authUser);
 
-    roomGate.style.display = "block";
-    showRoomStart();
-    renderMyRoomsBox();
+    await showRoomGateOrAutoEnter();
   });
 });
 
@@ -3352,6 +3444,7 @@ data = {
 
 function hideAllScreens(){
   roomGate.style.display = "none";
+  enteringRoom.style.display = "none";
   inviteGate.style.display = "none";
   auth.style.display = "none";
   app.style.display = "none";
@@ -3734,12 +3827,47 @@ function rejectInvite(){
   hideAllScreens();
 
   if(authService.currentUser){
-    roomGate.style.display = "block";
-    showRoomStart();
-    renderMyRoomsBox();
+    await showRoomGateOrAutoEnter();
   }else{
     auth.style.display = "block";
   }
+}
+
+function showEnteringRoom(name){
+  hideAllScreens();
+  enteringRoomName.innerText = name || "Sala";
+  enteringRoom.style.display = "block";
+}
+
+async function showRoomGateOrAutoEnter(){
+  const rooms = await getUserRooms();
+
+  if(rooms.length === 1){
+    showEnteringRoom(rooms[0].name);
+    setTimeout(()=>{
+      switchRoom(rooms[0].code);
+    },500);
+    return;
+  }
+
+ await showRoomGateOrAutoEnter();
+}
+
+function updateGymExercise(dayIndex, exIndex, value){
+  gymDraftRoutine.days[dayIndex].exercises[exIndex] = value;
+}
+
+function removeGymExercise(dayIndex, exIndex){
+  gymDraftRoutine.days[dayIndex].exercises.splice(exIndex,1);
+  renderCreateGymRoutine();
+}
+
+function removeGymDay(dayIndex){
+  const ok = confirm("¿Eliminar este día de la rutina?");
+  if(!ok) return;
+
+  gymDraftRoutine.days.splice(dayIndex,1);
+  renderCreateGymRoutine();
 }
 
 </script>
