@@ -3816,12 +3816,13 @@ async function acceptInvite(){
   pendingInviteData = null;
 }
 
-function rejectInvite(){
+async function rejectInvite(){
   pendingInviteCode = null;
   pendingInviteData = null;
 
   const url = new URL(location.href);
   url.searchParams.delete("sala");
+  url.searchParams.delete("invitacion");
   history.replaceState({}, "", url.toString());
 
   hideAllScreens();
