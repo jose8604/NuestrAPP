@@ -1010,6 +1010,55 @@ button{
   text-align:center;
 }
 
+.cal-event-chip{
+  width:100%;
+  border-radius:8px;
+  font-size:10px;
+  padding:2px 4px;
+  margin-top:3px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  line-height:1.2;
+  text-align:left;
+}
+
+.cal-more-chip{
+  width:100%;
+  margin-top:3px;
+  font-size:10px;
+  font-weight:700;
+  color:var(--muted);
+  text-align:left;
+}
+
+.day{
+  overflow:hidden;
+}
+
+@media(max-width:700px){
+  .calendar-grid{
+    grid-auto-rows:76px;
+  }
+
+  .day{
+    min-height:76px;
+    height:76px;
+    overflow:hidden;
+  }
+
+  .cal-event-chip{
+    font-size:9px;
+    padding:1px 3px;
+    margin-top:2px;
+  }
+
+  .cal-more-chip{
+    font-size:9px;
+    margin-top:2px;
+  }
+}
+
 </style>
 </head>
 
@@ -1524,21 +1573,15 @@ grid+=`
 <div class="day ${isToday?'today':''}" onclick="openDay('${fecha}')">
 ${d}
 <div style="margin-top:4px;">
-${eventos.map(ev=>`
-<div style="
-background:${ev.color||'#ffd43b'};
-border-radius:8px;
-font-size:10px;
-padding:2px 4px;
-margin-top:3px;
-white-space:nowrap;
-overflow:hidden;
-text-overflow:ellipsis;
-line-height:1.2;
-">
-${ev.title}
+${eventos.slice(0,2).map(ev=>`
+<div class="cal-event-chip" style="background:${ev.color||'#ffd43b'};">
+  ${ev.title}
 </div>
 `).join("")}
+
+${eventos.length > 2 ? `
+<div class="cal-more-chip">+${eventos.length - 2} más</div>
+` : ""}
 </div></div>`;
 }
 
