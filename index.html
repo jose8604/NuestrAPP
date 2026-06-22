@@ -1302,7 +1302,7 @@ async function register(){
     auth.style.display = "none";
 
 const params = new URLSearchParams(location.search);
-const codeFromLink = params.get("sala");
+const codeFromLink = params.get("invitacion") || params.get("sala");
 
 if(codeFromLink){
   await showInviteGate(codeFromLink);
@@ -2951,8 +2951,8 @@ function showJoinRoom(){
 }
 
 function getInviteLink(code = roomCode){
-  const url = new URL(location.href);
-  url.searchParams.set("sala", code);
+  const url = new URL(location.origin + location.pathname);
+  url.searchParams.set("invitacion", code);
   return url.toString();
 }
 
