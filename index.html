@@ -1032,6 +1032,16 @@ button{
 </div>
 </header>
 
+<div id="inviteGate" class="card gate-card" style="display:none">
+  <h2>Invitación a sala</h2>
+  <p>Te han invitado a unirte a:</p>
+  <h1 id="inviteRoomName" style="font-size:32px;"></h1>
+  <p id="inviteRoomCodeText"></p>
+
+  <button onclick="acceptInvite()">Entrar a la sala</button>
+  <button onclick="rejectInvite()">Ahora no</button>
+</div>
+
 <div id="roomGate" class="card gate-card" style="display:none">
   <div id="roomStart">
   <h2>Entrar a una sala</h2>
@@ -1124,6 +1134,9 @@ let lockAutoRefresh = false;
 
 let roomCode = null;
 let roomUnsubscribe = null;
+let pendingInviteCode = null;
+let pendingInviteData = null;
+
 
 const AVAILABLE_MENUS = {
   objetivos: "🎯 Objetivos",
@@ -1292,7 +1305,7 @@ const params = new URLSearchParams(location.search);
 const codeFromLink = params.get("sala");
 
 if(codeFromLink){
-  await enterRoomByCode(codeFromLink);
+  await showInviteGate(codeFromLink);
   return;
 }
 
@@ -2855,6 +2868,15 @@ document.addEventListener("DOMContentLoaded",()=>{
     const params = new URLSearchParams(location.search);
     const codeFromLink = params.get("sala");
 
+    if(codeFromLink){
+      if(authUser){
+        await loadProfileFromAuth(authUser);
+      }
+
+      await showInviteGate(codeFromLink);
+      return;
+    }
+
     if(!authUser){
       auth.style.display = "block";
       return;
@@ -2862,14 +2884,9 @@ document.addEventListener("DOMContentLoaded",()=>{
 
     await loadProfileFromAuth(authUser);
 
-    if(codeFromLink){
-      await enterRoomByCode(codeFromLink);
-      return;
-    }
-
     roomGate.style.display = "block";
-showRoomStart();
-renderMyRoomsBox();
+    showRoomStart();
+    renderMyRoomsBox();
   });
 });
 
@@ -3292,13 +3309,16 @@ data = {
 
 function hideAllScreens(){
   roomGate.style.display = "none";
+  inviteGate.style.display = "none";
   auth.style.display = "none";
   app.style.display = "none";
   document.querySelector(".menu-btn").style.display = "none";
 }
 
 function copyInviteLink(){
-  navigator.clipboard.writeText(createdInviteLink.value);
+  const text = `Te invito a unirte a "${data.roomName || "Nuestra App"}": ${createdInviteLink.value}`;
+
+  navigator.clipboard.writeText(text);
   alert("Invitación copiada");
 }
 
@@ -3620,6 +3640,63 @@ if(!data.users[user.uid]){
 
 showSuccessOverlay("Configuración guardada");
 renderSettings();
+}
+
+async function showInviteGate(code){
+  const doc = await db.collection("rooms").doc(code).get();
+
+  if(!doc.exists){
+    alert("La invitación no es válida o la sala ya no existe.");
+    roomGate.style.display = "block";
+    return;
+  }
+
+  pendingInviteCode = code;
+  pendingInviteData = doc.data();
+
+  hideAllScreens();
+
+  inviteRoomName.innerText = pendingInviteData.roomName || "Sala sin nombre";
+  inviteRoomCodeText.innerText = "Código: " + code;
+
+  inviteGate.style.display = "block";
+}
+
+async function acceptInvite(){
+  if(!pendingInviteCode) return;
+
+  const authUser = authService.currentUser;
+
+  if(!authUser){
+    hideAllScreens();
+    auth.style.display = "block";
+    return;
+  }
+
+  await loadProfileFromAuth(authUser);
+  await enterRoomByCode(pendingInviteCode);
+
+  pendingInviteCode = null;
+  pendingInviteData = null;
+}
+
+function rejectInvite(){
+  pendingInviteCode = null;
+  pendingInviteData = null;
+
+  const url = new URL(location.href);
+  url.searchParams.delete("sala");
+  history.replaceState({}, "", url.toString());
+
+  hideAllScreens();
+
+  if(authService.currentUser){
+    roomGate.style.display = "block";
+    showRoomStart();
+    renderMyRoomsBox();
+  }else{
+    auth.style.display = "block";
+  }
 }
 
 </script>
