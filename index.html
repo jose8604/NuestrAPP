@@ -3822,7 +3822,6 @@ async function rejectInvite(){
 
   const url = new URL(location.href);
   url.searchParams.delete("sala");
-  url.searchParams.delete("invitacion");
   history.replaceState({}, "", url.toString());
 
   hideAllScreens();
@@ -3851,7 +3850,9 @@ async function showRoomGateOrAutoEnter(){
     return;
   }
 
- await showRoomGateOrAutoEnter();
+  roomGate.style.display = "block";
+  showRoomStart();
+  renderMyRoomsBox();
 }
 
 function updateGymExercise(dayIndex, exIndex, value){
@@ -3875,3 +3876,4 @@ function removeGymDay(dayIndex){
 
 </body>
 </html>
+
