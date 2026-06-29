@@ -2232,12 +2232,12 @@ function renderGym(){
       <div style="text-align:left;">
         ${misRutinas.length ? misRutinas.map(rutina=>{
           const originalIndex = data.gym.rutinas.indexOf(rutina);
-          const open = gymOpenRoutines[originalIndex];
+          const open = gymOpenRoutines[rutina.id];
 
           return `
             <div class="rest-item">
               <div style="display:flex;align-items:center;gap:10px;">
-                <button class="icon-btn" onclick="toggleGymRoutine(${originalIndex})">${open ? "▼" : "▶"}</button>
+                <button class="icon-btn" onclick="toggleGymRoutine('${rutina.id}')">${open ? "▼" : "▶"}</button>
                 <b style="flex:1;">${rutina.title}</b>
                 <button class="icon-btn" onclick="openEditGymRoutine(${originalIndex})">✏️</button>
                 <button class="icon-btn" onclick="deleteGymRoutine(${originalIndex})">🗑️</button>
@@ -3843,12 +3843,26 @@ async function showRoomGateOrAutoEnter(){
   const rooms = await getUserRooms();
 
   if(rooms.length === 1){
-    showEnteringRoom(rooms[0].name);
-    setTimeout(()=>{
-      switchRoom(rooms[0].code);
-    },500);
+
+    const key = "entered_" + user.uid;
+
+    if(!localStorage.getItem(key)){
+        localStorage.setItem(key,"1");
+
+        showEnteringRoom(rooms[0].name);
+
+        setTimeout(()=>{
+            switchRoom(rooms[0].code);
+        },500);
+
+    }else{
+
+        await switchRoom(rooms[0].code);
+
+    }
+
     return;
-  }
+}
 
   roomGate.style.display = "block";
   showRoomStart();
@@ -3870,6 +3884,11 @@ function removeGymDay(dayIndex){
 
   gymDraftRoutine.days.splice(dayIndex,1);
   renderCreateGymRoutine();
+}
+
+function toggleGymRoutine(id){
+    gymOpenRoutines[id] = !gymOpenRoutines[id];
+    renderGym();
 }
 
 </script>
