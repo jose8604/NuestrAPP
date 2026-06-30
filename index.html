@@ -1128,6 +1128,11 @@ button{
 </div>
 </header>
 
+<div id="enteringRoom" class="card gate-card" style="display:none">
+  <h2>Entrando a</h2>
+  <h1 id="enteringRoomName" style="font-size:32px;"></h1>
+  <p>Preparando la sala...</p>
+</div>
 
 <div id="inviteGate" class="card gate-card" style="display:none">
   <h2>Invitación a sala</h2>
@@ -1406,9 +1411,7 @@ if(codeFromLink){
   return;
 }
 
-roomGate.style.display = "block";
-showRoomStart();
-renderMyRoomsBox();
+await showRoomGateOrAutoEnter();
 
   }catch(error){
     alert("Error creando cuenta: " + error.message);
@@ -1460,9 +1463,7 @@ if(codeFromLink){
   return;
 }
 
-roomGate.style.display = "block";
-showRoomStart();
-renderMyRoomsBox();
+await showRoomGateOrAutoEnter();
 
   }catch(error){
     alert("Error iniciando sesión: " + error.message);
@@ -3020,9 +3021,7 @@ document.addEventListener("DOMContentLoaded",()=>{
 
     await loadProfileFromAuth(authUser);
 
-    roomGate.style.display = "block";
-showRoomStart();
-renderMyRoomsBox();
+    await showRoomGateOrAutoEnter();
   });
 });
 
@@ -3445,6 +3444,7 @@ data = {
 
 function hideAllScreens(){
   roomGate.style.display = "none";
+  enteringRoom.style.display = "none";
   inviteGate.style.display = "none";
   auth.style.display = "none";
   app.style.display = "none";
@@ -3827,12 +3827,42 @@ async function rejectInvite(){
   hideAllScreens();
 
   if(authService.currentUser){
-    roomGate.style.display = "block";
-showRoomStart();
-renderMyRoomsBox();
+    await showRoomGateOrAutoEnter();
   }else{
     auth.style.display = "block";
   }
+}
+
+function showEnteringRoom(name){
+  hideAllScreens();
+  enteringRoomName.innerText = name || "Sala";
+  enteringRoom.style.display = "block";
+}
+
+async function showRoomGateOrAutoEnter(){
+  const rooms = await getUserRooms();
+
+  if(rooms.length === 1){
+
+    const key = "entered_" + user.uid;
+
+    if(!localStorage.getItem(key)){
+        localStorage.setItem(key,"1");
+
+        showEnteringRoom(rooms[0].name);
+
+        setTimeout(()=>{
+            switchRoom(rooms[0].code);
+        },500);
+
+    }else{
+
+        await switchRoom(rooms[0].code);
+
+    }
+
+    return;
+}
 }
 
   roomGate.style.display = "block";
