@@ -3177,7 +3177,7 @@ await saveData();
 localStorage.setItem("roomCode", roomCode);
 await rememberRoomForUser(roomCode, data.roomName);
 
-startApp();}
+startApp();
 
 async function rememberRoomForUser(code, name){
   if(!user || !user.uid || !code) return;
@@ -3891,9 +3891,9 @@ function toggleGymRoutine(id){
     gymOpenRoutines[id] = !gymOpenRoutines[id];
     renderGym();
 }
+}
 
 </script>
 
 </body>
 </html>
-
