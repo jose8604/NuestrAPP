@@ -2527,8 +2527,8 @@ function renderGymStatsChart(routineIndex){
   if(!chart) return;
 
   const rutina = data.gym.rutinas[routineIndex];
-  const exercise = gymStatsExercise.value;
-  const unit = gymStatsUnit.value;
+  const exercise = document.getElementById("gymStatsExercise")?.value;
+const unit = document.getElementById("gymStatsUnit")?.value;
 
   const routineId = rutina.id || "";
 
@@ -2975,7 +2975,6 @@ data.planes[index].desc=editDesc.value;
 
 await saveData();
 closeModal();
-closeModal();
 openDay(fecha);
 }
 
@@ -3178,6 +3177,7 @@ localStorage.setItem("roomCode", roomCode);
 await rememberRoomForUser(roomCode, data.roomName);
 
 startApp();
+}
 
 async function rememberRoomForUser(code, name){
   if(!user || !user.uid || !code) return;
@@ -3887,7 +3887,6 @@ function removeGymDay(dayIndex){
 function toggleGymRoutine(id){
     gymOpenRoutines[id] = !gymOpenRoutines[id];
     renderGym();
-}
 }
 
 </script>
