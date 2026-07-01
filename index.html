@@ -3847,28 +3847,25 @@ async function showRoomGateOrAutoEnter(){
     const key = "entered_" + user.uid;
 
     if(!localStorage.getItem(key)){
-        localStorage.setItem(key,"1");
+      localStorage.setItem(key,"1");
 
-        showEnteringRoom(rooms[0].name);
+      showEnteringRoom(rooms[0].name);
 
-        setTimeout(()=>{
-            switchRoom(rooms[0].code);
-        },500);
+      setTimeout(()=>{
+        switchRoom(rooms[0].code);
+      },500);
 
     }else{
-
-        await switchRoom(rooms[0].code);
-
+      await switchRoom(rooms[0].code);
     }
 
     return;
-}
-}
+  }
 
   roomGate.style.display = "block";
   showRoomStart();
   renderMyRoomsBox();
-
+}
 
 function updateGymExercise(dayIndex, exIndex, value){
   gymDraftRoutine.days[dayIndex].exercises[exIndex] = value;
